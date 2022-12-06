@@ -114,3 +114,16 @@ class Solver:
     def tau(self, tau):
         self._tau = tau
         return self._tau
+
+    def __calc_f(self, vd):
+        '''
+        Calculates propulsion for a desired velocity field vd
+
+        Parameters
+        ----------
+        vd : ndarray
+            the desired velocity field (in meters per second)
+        '''
+        f = (vd - self.u)/self.tau
+        return f
+    
