@@ -2,6 +2,19 @@ from solver import Solver
 from pytest import approx
 import numpy as np
 
+def test_solver_init():
+    solver = Solver(
+        n=3,
+        x=[[2, 6], [7, 8], [-2, 5]],
+        u=[[0.5, 0.1], [10, 2], [-1, 4]],
+        types=[0, 0, 1],
+        delta_t=0.2,
+    )
+    assert solver.x == [[2, 6], [7, 8], [-2, 5]]
+    assert solver.u == [[0.5, 0.1], [10, 2], [-1, 4]]
+    assert solver.types == [0, 0, 1]
+    assert solver.delta_t == 0.2
+
 def test_calc_f():
     ''''
     Unit test for the function calculating the propulsion F
@@ -21,4 +34,3 @@ def test_calc_f():
     
     # Check if the solver solution and the correct_solution are approximately equal
     assert approx(solver_solution) == correct_solution
-    
