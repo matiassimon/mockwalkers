@@ -1,6 +1,5 @@
 import numpy as np
 
-
 class Solver:
     '''
     A class used to represent a Solver
@@ -49,7 +48,7 @@ class Solver:
     def __init__(self, n: int, x, u, types, delta_t: float):
         '''
         Parameters
-        ----------
+        -------pyth---
         n : int
             the number of individuals for the crowd simulation
         x : ndarray
@@ -68,6 +67,7 @@ class Solver:
         self._u = u
         self._types = types
         self._delta_t = delta_t
+        self._vdmag = 1
         self._tau = tau
 
     @property
@@ -110,6 +110,16 @@ class Solver:
         self._delta_t = delta_t
         return self._delta_t
 
+    def __calc_vdterm(self):
+        '''Implementation of the private method of the Solver 
+        class used to obtain the v_d term for the eq. ■, aimed to the corridor example.
+        '''
+        vd = np.zeroes([self._n, 2])
+        vd[:1] = self._vdmag
+        vd[self._types == 1] *= -1 
+        return vd
+    
+
     @tau.setter
     def tau(self, tau):
         self._tau = tau
@@ -126,4 +136,3 @@ class Solver:
         '''
         f = (vd - self.u)/self.tau
         return f
-    
