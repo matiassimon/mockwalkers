@@ -69,6 +69,8 @@ class Solver:
         self._delta_t = delta_t
         self._vdmag = 1
         self._tau = tau
+        self._b = 1
+        self._rprime = 0.1
 
     @property
     def x(self):
@@ -118,7 +120,7 @@ class Solver:
         vd[:,0] = self._vdmag
         vd[self._types == 1] *= -1 
         return vd
-    
+
 
     @tau.setter
     def tau(self, tau):
@@ -136,3 +138,15 @@ class Solver:
         '''
         f = (vd - self.u)/self.tau
         return f
+
+    def __calc_e(self):
+        '''Implementation of the private method of the Solver class used to calculate 
+        the E term of the eq. ■, aimed to the corridor example.
+        '''
+        dtop_wall = np.array([self._n, 1])
+        dbottom_wall = np.array([self._n, 1])
+        e = np.zeros([n, 2])
+        eytop = -self._b * np.exp(-dtop_wall/self._rprime)
+        eybottom = self._b * np.exp(-dtop_wall/self._rprime)
+        e[:1] = eytop + eybottom
+        return e
