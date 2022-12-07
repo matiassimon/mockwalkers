@@ -147,6 +147,6 @@ class Solver:
         dbottom_wall = np.array([self._n, 1])
         e = np.zeros([self._n, 2])
         eytop = -self._b * np.exp(-dtop_wall/self._rprime)
-        eybottom = self._b * np.exp(-dtop_wall/self._rprime)
+        eybottom = self._b * np.exp(-dbottom_wall/self._rprime)
         e[:1] = eytop + eybottom
         return e
