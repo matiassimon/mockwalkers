@@ -34,3 +34,26 @@ def test_calc_f():
     
     # Check if the solver solution and the correct_solution are approximately equal
     assert approx(solver_solution) == correct_solution
+
+def test_types_and_vd_consistency():
+    '''
+    Unit test if type of person (0 or 1) is consistend with desired velocity (vd)
+    '''
+    n = 10
+    x = 3*np.ones([n, 2])
+    u = 2*np.ones([n, 2])
+    types = np.random.choice(2,n)
+    delta_t = 1 
+
+    solver = Solver(n, x, u, types, delta_t)
+    vd = solver._Solver__calc_vdterm()
+
+    vd_right = vd[:,0][types==0]
+    vd_left = vd[:,0][types==1]
+
+    '''
+    type 0 should have positive u-component for vd, 
+    type 1 should have negative u-component for vd.
+    '''
+    assert all(i>0 for i in vd_right)
+    assert all(i<0 for i in vd_left)
