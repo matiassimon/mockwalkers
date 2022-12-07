@@ -61,14 +61,18 @@ class Solver:
         delta_t : float
             the discrete time step (in seconds) used for the crowd simulation
         '''
-        tau = float(3)
-        
+
         self._n = n
         self._x = x
         self._u = u
         self._types = types
         self._delta_t = delta_t
-        self._tau = tau
+        self._tau = float(3)
+        
+        #Kernel constants
+        self._int_constant = float(1)
+        self._int_radius = float(2)
+        self._theta_max = np.radians(80)
 
     @property
     def x(self):
@@ -129,9 +133,9 @@ class Solver:
     
     def __calc_k(self, vd: np.ndarray):
         
-        A = 1
-        R = 1
-        theta_max = np.radians(80)
+        A = self._int_constant
+        R = self._int_radius
+        theta_max = self._theta_max
         
         X = self._x[:, 0]
         Y = self._x[:, 1]
@@ -145,8 +149,8 @@ class Solver:
         distance_sqr_bstack = np.stack((distance_sqr_nstack, distance_sqr_nstack), axis=2)
         distance_mag_bstack = np.stack((distance_mag_nstack, distance_mag_nstack), axis=2)
         
-        U = self._vd[:, 0]
-        V = self._vd[:, 1]
+        U = vd[:, 0]
+        V = vd[:, 1]
         
         [Ui, Uj] = np.meshgrid(U, U)
         [Vi, Vj] = np.meshgrid(V, V)
