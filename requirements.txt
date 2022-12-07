@@ -2,3 +2,5 @@ black
 pycodestyle
 numpy
 pytest
+matplotlib
+streamlit
