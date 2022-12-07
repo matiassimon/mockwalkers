@@ -115,7 +115,7 @@ class Solver:
         class used to obtain the v_d term for the eq. ■, aimed to the corridor example.
         '''
         vd = np.zeros([self._n, 2])
-        vd[:1] = self._vdmag
+        vd[:,0] = self._vdmag
         vd[self._types == 1] *= -1 
         return vd
     
