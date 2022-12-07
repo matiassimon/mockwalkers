@@ -57,3 +57,19 @@ def test_types_and_vd_consistency():
     '''
     assert all(i>0 for i in vd_right)
     assert all(i<0 for i in vd_left)
+
+def test_F_equal_zero():
+    '''
+    Unit test to check if F = 0 when vd == u
+    '''
+    n = 2
+    x = 3*np.ones([n,2])
+    types = np.array([0,1])
+    u = np.array([[1,0],[-1,0]])
+    delta_t = 1 
+
+    solver = Solver(n, x, u, types, delta_t)
+    solver_solution_f = solver._Solver__calc_f(vd=u)
+
+    '''solver_solution should be 0 for vd==u'''
+    assert approx(solver_solution_f) == 0
