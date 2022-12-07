@@ -46,7 +46,7 @@ class Solver:
         Sets the float corresponding to the relaxation time in seconds (default 3)
     '''
     
-    def __init__(self, n: int, x, u, types, delta_t: float):
+    def __init__(self, n: int, x: np.ndarray, u: np.ndarray, types, delta_t: float):
         '''
         Parameters
         ----------
@@ -101,7 +101,7 @@ class Solver:
         return self._u
 
     @types.setter
-    def types(self, types):
+    def types(self, types: np.ndarray):
         self._types = types
         return self._types
 
@@ -115,7 +115,7 @@ class Solver:
         self._tau = tau
         return self._tau
 
-    def __calc_f(self, vd):
+    def __calc_f(self, vd: np.ndarray):
         '''
         Calculates propulsion for a desired velocity field vd
 
@@ -127,3 +127,43 @@ class Solver:
         f = (vd - self.u)/self.tau
         return f
     
+    def __calc_k(self, vd: np.ndarray):
+        
+        A = 1
+        R = 1
+        theta_max = np.radians(80)
+        
+        X = self._x[:, 0]
+        Y = self._x[:, 1]
+        
+        [Xi, Xj] = np.meshgrid(X, X)
+        [Yi, Yj] = np.meshgrid(Y, Y)
+        
+        distance_vec_bstack = np.stack((np.subtract(Xi, Xj), np.subtract(Yi, Yj)), axis=2)
+        distance_sqr_nstack = np.square(distance_vec_bstack[:,:,0]) + np.square(distance_vec_bstack[:,:,1])
+        distance_mag_nstack = np.sqrt(distance_sqr_nstack)
+        distance_sqr_bstack = np.stack((distance_sqr_nstack, distance_sqr_nstack), axis=2)
+        distance_mag_bstack = np.stack((distance_mag_nstack, distance_mag_nstack), axis=2)
+        
+        U = self._vd[:, 0]
+        V = self._vd[:, 1]
+        
+        [Ui, Uj] = np.meshgrid(U, U)
+        [Vi, Vj] = np.meshgrid(V, V)
+        
+        vd_vec_bstack = np.stack((Uj, Vj), axis=2)
+        vd_mag_nstack = np.sqrt(np.square(vd_vec_bstack[:,:,0]) + np.square(vd_vec_bstack[:,:,1]))
+        
+        product_org = distance_vec_bstack * vd_vec_bstack
+        product_dot = product_org[:,:,0]+product_org[:,:,1]
+        product_mag = distance_mag_nstack * vd_mag_nstack
+        theta_org = np.arccos(product_dot/product_mag)
+        theta_con = theta_org < theta_max
+        theta = theta_org*theta_con
+        
+        theta_bstack = np.stack((theta, theta), axis=2)
+        
+        k = A*np.exp((-distance_sqr_bstack)/(R**2))*(distance_vec_bstack/distance_mag_bstack)*theta_bstack
+        k = np.nan_to_num(k)
+        return k
+        
