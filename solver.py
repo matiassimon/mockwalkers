@@ -145,7 +145,7 @@ class Solver:
         '''
         dtop_wall = np.array([self._n, 1])
         dbottom_wall = np.array([self._n, 1])
-        e = np.zeros([n, 2])
+        e = np.zeros([self._n, 2])
         eytop = -self._b * np.exp(-dtop_wall/self._rprime)
         eybottom = self._b * np.exp(-dtop_wall/self._rprime)
         e[:1] = eytop + eybottom
