@@ -9,3 +9,5 @@ This model simulates the behaviour of two crowds walking in a corridor in opposi
 David, Jimoh, Matias and Alouette
 
 ## License
+
+See license file
