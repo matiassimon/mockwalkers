@@ -77,3 +77,22 @@ def test_F_equal_zero():
 
     """solver_solution should be 0 for vd==u"""
     assert approx(solver_solution_f) == 0
+
+
+def test_interaction_kernel():
+    '''
+    Unit test to check calculated solution by hand to code
+    '''
+    n = 2
+    x = np.array([[1, 2], [3, 4]])
+    types = np.array([0, 1])
+    u = np.array([[1, 0], [-1, 0]])
+    delta_t = 1
+
+    solver = Solver(n, x, u, types, delta_t)
+    solver.theta_max = 180
+    vd = solver._Solver__calc_vdterm()
+    k = solver._Solver__calc_k(vd)
+
+    assert approx(k[:,:,0]) == [[0, np.exp(-2)*(-2/np.sqrt(8))], [np.exp(-2)*(2/np.sqrt(8)), 0]]
+    assert approx(k[:,:,0]) == k[:,:,1]
