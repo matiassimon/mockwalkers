@@ -2,32 +2,29 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.collections as collections
 import numpy as np
-from solver import Solver
+import solver
 
-CORRIDOR_WITDH = 2.0
-CORRIDOR_LENGTH = 10.0
 CORRIDOR_WALL_THICKNESS = 0.5
-GRAPHIC_XLIM = (-1, 11)
-GRAPHIC_YLIM = (-1, 3)
-
+GRAPHIC_XLIM = (-1, solver.CORRIDOR_LENGTH + 1)
+GRAPHIC_YLIM = (-1, solver.CORRIDOR_WIDTH +1)
 
 class Graphic:
-    def __init__(self, ax: plt.Axes, solver: Solver) -> None:
+    def __init__(self, ax: plt.Axes, solver: solver.Solver) -> None:
         ax.set_xlim(GRAPHIC_XLIM)
         ax.set_ylim(GRAPHIC_YLIM)
         self._obstacles = self.__create_obstacles(ax)
         self._walkers = self.__create_walkers(ax, solver.types)
         self.update(solver)
 
-    def update(self, solver: Solver) -> None:
+    def update(self, solver: solver.Solver) -> None:
         self.__update_walkers(solver.x)
 
     def __create_obstacles(self, ax: plt.Axes) -> list[plt.Rectangle]:
         bottom_wall = self.__create_wall(
-            ax, (0, -CORRIDOR_WALL_THICKNESS), CORRIDOR_LENGTH, CORRIDOR_WALL_THICKNESS
+            ax, (0, -CORRIDOR_WALL_THICKNESS), solver.CORRIDOR_LENGTH, CORRIDOR_WALL_THICKNESS
         )
         top_wall = self.__create_wall(
-            ax, (0, CORRIDOR_WITDH), CORRIDOR_LENGTH, CORRIDOR_WALL_THICKNESS
+            ax, (0, solver.CORRIDOR_WIDTH), solver.CORRIDOR_LENGTH, CORRIDOR_WALL_THICKNESS
         )
         return [bottom_wall, top_wall]
 
