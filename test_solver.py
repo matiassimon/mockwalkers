@@ -113,3 +113,18 @@ def test_iterate():
         solver.iterate()
         
     assert approx(np.reshape(solver.u, [2,])) == u
+
+def test_E_term_zero_solver():
+    '''
+    Unit test if E == 0 when person is in the middle of the corridor
+    '''
+    n = 2
+    x = np.array([[1, 5], [0.5, 5]])
+    types = np.array([0, 1])
+    u = np.array([[1, 0], [-1, 0]])
+    delta_t = 1
+
+    solver = Solver(n, x, u, types, delta_t)
+    e = solver._Solver__calc_e()
+
+    assert approx(np.all(e)) == 0
