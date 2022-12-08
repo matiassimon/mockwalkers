@@ -96,7 +96,23 @@ def test_interaction_kernel():
 
     assert approx(k[:,:,0]) == [[0, np.exp(-2)*(-2/np.sqrt(8))], [np.exp(-2)*(2/np.sqrt(8)), 0]]
     assert approx(k[:,:,0]) == k[:,:,1]
-
+    
+def test_iterate():
+    '''
+    Unit test to check the iterate method
+    '''
+    n = 1
+    x = 3 * np.ones([n, 1])
+    types = np.array([0])
+    u = np.array([1, 0])
+    delta_t = 1
+    
+    solver = Solver(n, x, u, types, delta_t)
+    
+    for i in range(1000):
+        solver.iterate()
+        
+    assert approx(np.reshape(solver.u, [2,])) == u
 
 def test_E_term_zero_solver():
     '''
