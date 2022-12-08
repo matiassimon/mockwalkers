@@ -219,10 +219,10 @@ class Solver:
 
         X = self._x[:, 0]
         Y = self._x[:, 1]
-
-        [Xi, Xj] = np.meshgrid(X, X)
-        [Yi, Yj] = np.meshgrid(Y, Y)
-
+        
+        [Xj, Xi] = np.meshgrid(X, X)
+        [Yj, Yi] = np.meshgrid(Y, Y)
+        
         distance_vec_bstack = np.stack(
             (np.subtract(Xi, Xj), np.subtract(Yi, Yj)), axis=2
         )
@@ -253,8 +253,8 @@ class Solver:
         product_mag = distance_mag_nstack * vd_mag_nstack
         theta_org = np.arccos(product_dot / product_mag)
         theta_con = theta_org < theta_max
-        theta = theta_org * theta_con
-
+        theta = theta_con
+        
         theta_bstack = np.stack((theta, theta), axis=2)
 
         k = (
