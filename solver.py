@@ -179,7 +179,7 @@ class Solver:
         return f
 
     
-    def __iterate(self):
+    def iterate(self):
         self._x = self._x + self.delta_t*self._u
         
         vd = self.__calc_vdterm()
