@@ -84,7 +84,8 @@ class Solver:
         self._int_constant = float(1)
         self._int_radius = float(2)
         self._theta_max = np.radians(80)
-
+        self._vel_option = int(0)
+    
         # Desired velocity constants
         self._vdmag = float(1)
 
@@ -122,6 +123,10 @@ class Solver:
     @property
     def theta_max(self):
         return self._theta_max
+    
+    @property
+    def vel_option(self):
+        return self._vel_option
 
     @property
     def vd_mag(self):
@@ -170,6 +175,11 @@ class Solver:
     def theta_max(self, theta_max: float):
         self._theta_max = theta_max
         return self._theta_max
+    
+    @vel_option.setter
+    def vel_option(self, vel_option: int):
+        self._vel_option = vel_option
+        return self._vel_option
 
     @vd_mag.setter
     def vd_mag(self, vd_mag: float):
@@ -236,9 +246,13 @@ class Solver:
         distance_mag_bstack = np.stack(
             (distance_mag_nstack, distance_mag_nstack), axis=2
         )
-
-        U = vd[:, 0]
-        V = vd[:, 1]
+        
+        if self._vel_option == int(0):
+            U = vd[:, 0]
+            V = vd[:, 1]
+        elif self._vel_option == int(1):
+            U = self._u[:, 0]
+            V = self._u[:, 1]
 
         [Ui, Uj] = np.meshgrid(U, U)
         [Vi, Vj] = np.meshgrid(V, V)
