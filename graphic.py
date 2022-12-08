@@ -10,6 +10,7 @@ CORRIDOR_WALL_THICKNESS = 0.5
 GRAPHIC_XLIM = (-1, 11)
 GRAPHIC_YLIM = (-1, 3)
 
+
 class Graphic:
     def __init__(self, ax: plt.Axes, solver: Solver) -> None:
         ax.set_xlim(GRAPHIC_XLIM)
@@ -22,16 +23,24 @@ class Graphic:
         self.__update_walkers(solver.x)
 
     def __create_obstacles(self, ax: plt.Axes) -> list[plt.Rectangle]:
-        bottom_wall = self.__create_wall(ax, (0, -CORRIDOR_WALL_THICKNESS), CORRIDOR_LENGTH, CORRIDOR_WALL_THICKNESS)
-        top_wall = self.__create_wall(ax, (0, CORRIDOR_WITDH), CORRIDOR_LENGTH, CORRIDOR_WALL_THICKNESS)
+        bottom_wall = self.__create_wall(
+            ax, (0, -CORRIDOR_WALL_THICKNESS), CORRIDOR_LENGTH, CORRIDOR_WALL_THICKNESS
+        )
+        top_wall = self.__create_wall(
+            ax, (0, CORRIDOR_WITDH), CORRIDOR_LENGTH, CORRIDOR_WALL_THICKNESS
+        )
         return [bottom_wall, top_wall]
 
-    def __create_wall(self, ax: plt.Axes, xy: tuple[float], width: float, height: float) -> plt.Rectangle:
+    def __create_wall(
+        self, ax: plt.Axes, xy: tuple[float], width: float, height: float
+    ) -> plt.Rectangle:
         ret = patches.Rectangle(xy, width, height)
         ax.add_patch(ret)
         return ret
 
-    def __create_walkers(self, ax: plt.Axes, types: np.ndarray) -> collections.PathCollection:
+    def __create_walkers(
+        self, ax: plt.Axes, types: np.ndarray
+    ) -> collections.PathCollection:
         return ax.scatter(np.zeros(types.shape), np.zeros(types.shape))
 
     def __update_walkers(self, x: np.ndarray) -> None:
