@@ -76,8 +76,11 @@ class Solver:
         self._theta_max = np.radians(80)
         
         #Desired velocity constants
-        self._vdmag = 1
+        self._vdmag = float(1)
 
+        #Iterate constants
+        self._current_time = float(0)
+    
     @property
     def x(self):
         return self._x
@@ -97,7 +100,27 @@ class Solver:
     @property
     def tau(self):
        return self._tau
-
+   
+    @property
+    def int_constant(self):
+        return self._int_constant
+    
+    @property
+    def int_radius(self):
+        return self._int_radius
+    
+    @property
+    def theta_max(self):
+        return self._theta_max
+    
+    @property
+    def vd_mag(self):
+        return self._vd_mag
+   
+    @property
+    def current_time(self):
+        return self._current_time
+    
     @x.setter
     def x(self, x):
         self._x = x
@@ -122,6 +145,26 @@ class Solver:
     def tau(self, tau):
         self._tau = tau
         return self._tau
+    
+    @int_constant.setter
+    def int_constant(self, int_constant: float):
+        self._int_constant = int_constant
+        return self._int_constant
+    
+    @int_radius.setter
+    def int_radius(self, int_radius: float):
+        self._int_radius = int_radius
+        return self._int_radius
+    
+    @theta_max.setter
+    def theta_max(self, theta_max: float):
+        self._theta_max = theta_max
+        return self._theta_max
+    
+    @vd_mag.setter
+    def vd_mag(self, vd_mag: float):
+        self._vdmag = vd_mag
+        return self._vd_mag
 
     def __calc_f(self, vd: np.ndarray):
         '''
@@ -134,6 +177,18 @@ class Solver:
         '''
         f = (vd - self.u)/self.tau
         return f
+
+    
+    def iterate(self):
+        self._x = self._x + self.delta_t*self._u
+        
+        vd = self.__calc_vdterm()
+        calc_summa_k = np.sum(self.__calc_k(vd), axis=1)
+        acceleration = self.__calc_f(vd) + calc_summa_k + self.__calc_e
+        
+        self._u = self._u + self._delta_t*acceleration
+        
+        self._current_time = self._current_time + self._delta_t
 
     
     def __calc_k(self, vd: np.ndarray):
