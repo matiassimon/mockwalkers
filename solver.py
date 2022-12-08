@@ -1,5 +1,7 @@
 import numpy as np
 
+CORRIDOR_LENGTH = 2.0
+CORRIDOR_WIDTH = 10.0
 
 class Solver:
     """
@@ -21,6 +23,9 @@ class Solver:
         the discrete time step (in seconds) used for the crowd simulation
     _tau : float
         the relaxation time in seconds (default 3)
+    _imp: float
+        impermeability constant b (default 1)
+        impermeability constant rprime (default 0.1)
 
     Methods
     ----------
@@ -187,12 +192,12 @@ class Solver:
         """Implementation of the private method of the Solver class used to calculate
         the E term of the eq. ■, aimed to the corridor example.
         """
-        dtop_wall = np.array([self._n, 1])
-        dbottom_wall = np.array([self._n, 1])
-        e = np.zeros([self._n, 2])
-        eytop = -self._imp_constant * np.exp(-dtop_wall / self._rprime)
-        eybottom = self._imp_constant * np.exp(-dbottom_wall / self._rprime)
-        e[:1] = eytop + eybottom
+        dbottom = self._x[:, 1]
+        dtop = CORRIDOR_WIDTH - dbottom
+        e = np.zeros((self._n, 2))
+        eytop = -self._imp_constant * np.exp(-dtop / self._rprime)
+        eybottom = self._imp_constant * np.exp(-dbottom / self._rprime)
+        e[:,1] = eytop + eybottom
         return e
 
     def iterate(self):
