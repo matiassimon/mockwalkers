@@ -78,6 +78,9 @@ class Solver:
         #Desired velocity constants
         self._vdmag = 1
 
+        #Iterate constants
+        self._num_iterations = 1000
+        
     @property
     def x(self):
         return self._x
@@ -134,6 +137,17 @@ class Solver:
         '''
         f = (vd - self.u)/self.tau
         return f
+
+    
+    def __iterate(self):
+        for i in range(self._num_iterations):
+            self._x = self._x + self.delta_t*self._u
+            
+            vd = self.__calc_vdterm()
+            calc_summa_k = np.sum(self.__calc_k(vd), axis=1)
+            acceleration = self.__calc_f(vd) + calc_summa_k + self.__calc_e
+            
+            self._u = self._u + self.delta_t*acceleration
 
     
     def __calc_k(self, vd: np.ndarray):
