@@ -205,7 +205,7 @@ class Solver:
 
         vd = self.__calc_vdterm()
         calc_summa_k = np.sum(self.__calc_k(vd), axis=1)
-        acceleration = self.__calc_f(vd) + calc_summa_k + self.__calc_e
+        acceleration = self.__calc_f(vd) + calc_summa_k + self.__calc_e()
 
         self._u = self._u + self._delta_t * acceleration
 
@@ -272,5 +272,5 @@ class Solver:
         """
         vd = np.zeros([self._n, 2])
         vd[:, 0] = self._vdmag
-        vd[self._types == 1] *= -1
+        vd[np.reshape(self._types == 1, [self._n,])] *= -1
         return vd
