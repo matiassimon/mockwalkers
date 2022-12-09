@@ -1,7 +1,7 @@
 import numpy as np
 
-CORRIDOR_LENGTH = 2.0
-CORRIDOR_WIDTH = 10.0
+CORRIDOR_LENGTH = 20.0
+CORRIDOR_WIDTH = 2.0
 
 class Solver:
     """
@@ -75,16 +75,16 @@ class Solver:
 
         # Impermeability constant
         self._imp_constant = float(1)
-        self._rprime = float(0.1)
+        self._rprime = float(0.01)
 
         # Propulsion constants
-        self._tau = float(3)
+        self._tau = float(0.1)
 
         # Kernel constants
-        self._int_constant = float(1)
-        self._int_radius = float(2)
+        self._int_constant = float(2)
+        self._int_radius = float(0.5)
         self._theta_max = np.radians(80)
-        self._vel_option = int(0)
+        self._vel_option = int(1)
     
         # Desired velocity constants
         self._vdmag = float(1)
