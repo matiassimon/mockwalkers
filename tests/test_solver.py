@@ -1,4 +1,4 @@
-from solver import Solver
+from mockwalkers.solver import Solver
 from pytest import approx
 import numpy as np
 

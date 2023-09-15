@@ -20,6 +20,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: update PYTHONPATH
+        run: |
+          echo "PYTHONPATH=${{ github.workspace }}/mockwalkers:$PYTHONPATH" >> $GITHUB_ENV
       - name: test with pytest
         run: |
           pytest
