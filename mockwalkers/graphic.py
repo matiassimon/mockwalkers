@@ -3,7 +3,7 @@ import matplotlib.patches as patches
 import matplotlib.patheffects as path_effects
 import matplotlib.collections as collections
 import numpy as np
-import solver
+from mockwalkers import solver
 
 CORRIDOR_WALL_THICKNESS = 0.5
 GRAPHIC_XLIM = (-1, solver.CORRIDOR_LENGTH + 1)
