@@ -3,6 +3,7 @@ import numpy as np
 CORRIDOR_LENGTH = 20.0
 CORRIDOR_WIDTH = 2.0
 
+
 class Solver:
     """
     A class used to represent a Solver
@@ -85,7 +86,7 @@ class Solver:
         self._int_radius = float(0.5)
         self._theta_max = np.radians(80)
         self._vel_option = int(1)
-    
+
         # Desired velocity constants
         self._vdmag = float(1)
 
@@ -123,7 +124,7 @@ class Solver:
     @property
     def theta_max(self):
         return self._theta_max
-    
+
     @property
     def vel_option(self):
         return self._vel_option
@@ -175,7 +176,7 @@ class Solver:
     def theta_max(self, theta_max: float):
         self._theta_max = theta_max
         return self._theta_max
-    
+
     @vel_option.setter
     def vel_option(self, vel_option: int):
         self._vel_option = vel_option
@@ -207,7 +208,7 @@ class Solver:
         e = np.zeros((self._n, 2))
         eytop = -self._imp_constant * np.exp(-dtop / self._rprime)
         eybottom = self._imp_constant * np.exp(-dbottom / self._rprime)
-        e[:,1] = eytop + eybottom
+        e[:, 1] = eytop + eybottom
         return e
 
     def iterate(self):
@@ -222,17 +223,16 @@ class Solver:
         self._current_time = self._current_time + self._delta_t
 
     def __calc_k(self, vd: np.ndarray):
-
         A = self._int_constant
         R = self._int_radius
         theta_max = self._theta_max
 
         X = self._x[:, 0]
         Y = self._x[:, 1]
-        
+
         [Xj, Xi] = np.meshgrid(X, X)
         [Yj, Yi] = np.meshgrid(Y, Y)
-        
+
         distance_vec_bstack = np.stack(
             (np.subtract(Xi, Xj), np.subtract(Yi, Yj)), axis=2
         )
@@ -246,7 +246,7 @@ class Solver:
         distance_mag_bstack = np.stack(
             (distance_mag_nstack, distance_mag_nstack), axis=2
         )
-        
+
         if self._vel_option == int(0):
             U = vd[:, 0]
             V = vd[:, 1]
@@ -268,7 +268,7 @@ class Solver:
         theta_org = np.arccos(product_dot / product_mag)
         theta_con = theta_org < theta_max
         theta = theta_con
-        
+
         theta_bstack = np.stack((theta, theta), axis=2)
 
         k = (
@@ -286,5 +286,12 @@ class Solver:
         """
         vd = np.zeros([self._n, 2])
         vd[:, 0] = self._vdmag
-        vd[np.reshape(self._types == 1, [self._n,])] *= -1
+        vd[
+            np.reshape(
+                self._types == 1,
+                [
+                    self._n,
+                ],
+            )
+        ] *= -1
         return vd
