@@ -1,7 +1,5 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/alpine
 {
-	"name": "Alpine",
+	"name": "mockwalkers",
 	
 	"build": {
 		"dockerfile": "Dockerfile"
@@ -14,7 +12,9 @@
 				"donjayamanne.python-extension-pack"
 			]
 		}
-	}
+	},
+
+	"postStartCommand": "pip install -rrequirements.txt"
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
