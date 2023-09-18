@@ -9,7 +9,8 @@
 			"extensions": [
 				"github.vscode-github-actions",
 				"ms-python.python",
-				"donjayamanne.python-extension-pack"
+				"donjayamanne.python-extension-pack",
+				"ms-python.black-formatter"
 			]
 		}
 	},
