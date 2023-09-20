@@ -8,9 +8,8 @@ from matplotlib.collections import (
 )
 from matplotlib.markers import MarkerStyle
 from matplotlib.patheffects import Stroke
-from mockwalkers.solver import Solver
-
 import matplotlib.transforms as mtransform
+from mockwalkers.solver import Solver
 
 
 class PatchTransCollection(PatchCollection):
@@ -91,9 +90,7 @@ class ArrowCollections:
         # heads.set_patch_transforms([mtransform.Affine2D().rotate_deg(15)])
         self._ax.add_collection(heads)
         heads.set_transform(mtransform.IdentityTransform())
-        self._base_heads_transforms = mtransform.Affine2D().scale(
-            marker_scale
-        )
+        self._base_heads_transforms = mtransform.Affine2D().scale(marker_scale)
         heads.set_patch_transforms([self._base_heads_transforms])
         return heads
 
@@ -121,6 +118,7 @@ class ArrowCollections:
     def remove(self):
         self.tails.remove()
         self.heads.remove()
+
 
 class WalkersPropulsion(ArrowCollections):
     def __init__(self, ax: mpl.axes.Axes, solver: Solver):

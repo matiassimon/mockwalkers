@@ -1,2 +1,2 @@
-import mockwalkers.graphic
-import mockwalkers.solver
+from .graphic import *
+from .solver import *
