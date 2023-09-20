@@ -76,14 +76,14 @@ class Solver:
 
         # Impermeability constant
         self._imp_constant = float(1)
-        self._rprime = float(0.01)
+        self._rprime = float(1)
 
         # Propulsion constants
-        self._tau = float(0.1)
+        self._tau = float(1)
 
         # Kernel constants
-        self._int_constant = float(2)
-        self._int_radius = float(0.5)
+        self._int_constant = float(1)
+        self._int_radius = float(1)
         self._theta_max = np.radians(80)
         self._vel_option = int(1)
 
@@ -92,19 +92,19 @@ class Solver:
 
         # Iterate constants
         self._current_time = float(0)
-        
+
         # Propulsion term
         self._f = np.empty(self._x.shape)
-        self._f.fill(np.nan) 
+        self._f.fill(np.nan)
 
         # Interaction term
         self._ksum = np.empty(self._x.shape)
-        self._ksum.fill(np.nan) 
+        self._ksum.fill(np.nan)
 
     @property
     def n(self):
         return self._n
-    
+
     @property
     def x(self):
         return self._x
