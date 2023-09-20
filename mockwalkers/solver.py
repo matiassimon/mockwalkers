@@ -92,7 +92,19 @@ class Solver:
 
         # Iterate constants
         self._current_time = float(0)
+        
+        # Propulsion term
+        self._f = np.empty(self._x.shape)
+        self._f.fill(np.nan) 
 
+        # Interaction term
+        self._ksum = np.empty(self._x.shape)
+        self._ksum.fill(np.nan) 
+
+    @property
+    def n(self):
+        return self._n
+    
     @property
     def x(self):
         return self._x
@@ -136,6 +148,14 @@ class Solver:
     @property
     def current_time(self):
         return self._current_time
+
+    @property
+    def f(self):
+        return self._f
+
+    @property
+    def ksum(self):
+        return self._ksum
 
     @x.setter
     def x(self, x):
@@ -215,8 +235,9 @@ class Solver:
         self._x = self._x + self.delta_t * self._u
 
         vd = self.__calc_vdterm()
-        calc_summa_k = np.sum(self.__calc_k(vd), axis=1)
-        acceleration = self.__calc_f(vd) + calc_summa_k + self.__calc_e()
+        self._f = self.__calc_f(vd)
+        self._ksum = np.sum(self.__calc_k(vd), axis=1)
+        acceleration = self._f + self._ksum + self.__calc_e()
 
         self._u = self._u + self._delta_t * acceleration
 
