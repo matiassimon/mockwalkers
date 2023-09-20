@@ -76,14 +76,14 @@ class Solver:
 
         # Impermeability constant
         self._imp_constant = float(1)
-        self._rprime = float(0.01)
+        self._rprime = float(1)
 
         # Propulsion constants
-        self._tau = float(0.1)
+        self._tau = float(1)
 
         # Kernel constants
-        self._int_constant = float(2)
-        self._int_radius = float(0.5)
+        self._int_constant = float(1)
+        self._int_radius = float(1)
         self._theta_max = np.radians(80)
         self._vel_option = int(1)
 
@@ -92,19 +92,19 @@ class Solver:
 
         # Iterate constants
         self._current_time = float(0)
-        
+
         # Propulsion term
         self._f = np.empty(self._x.shape)
-        self._f.fill(np.nan) 
+        self._f.fill(np.nan)
 
         # Interaction term
         self._ksum = np.empty(self._x.shape)
-        self._ksum.fill(np.nan) 
+        self._ksum.fill(np.nan)
 
     @property
     def n(self):
         return self._n
-    
+
     @property
     def x(self):
         return self._x
@@ -231,18 +231,6 @@ class Solver:
         e[:, 1] = eytop + eybottom
         return e
 
-    def iterate(self):
-        self._x = self._x + self.delta_t * self._u
-
-        vd = self.__calc_vdterm()
-        self._f = self.__calc_f(vd)
-        self._ksum = np.sum(self.__calc_k(vd), axis=1)
-        acceleration = self._f + self._ksum + self.__calc_e()
-
-        self._u = self._u + self._delta_t * acceleration
-
-        self._current_time = self._current_time + self._delta_t
-
     def __calc_k(self, vd: np.ndarray):
         A = self._int_constant
         R = self._int_radius
@@ -261,11 +249,11 @@ class Solver:
             distance_vec_bstack[:, :, 1]
         )
         distance_mag_nstack = np.sqrt(distance_sqr_nstack)
-        distance_sqr_bstack = np.stack(
-            (distance_sqr_nstack, distance_sqr_nstack), axis=2
+        distance_sqr_bstack = np.broadcast_to(
+            distance_sqr_nstack[:, :, np.newaxis], (*distance_sqr_nstack.shape, 2)
         )
-        distance_mag_bstack = np.stack(
-            (distance_mag_nstack, distance_mag_nstack), axis=2
+        distance_mag_bstack = np.broadcast_to(
+            distance_mag_nstack[:, :, np.newaxis], (*distance_mag_nstack.shape, 2)
         )
 
         if self._vel_option == int(0):
@@ -283,14 +271,16 @@ class Solver:
             np.square(vd_vec_bstack[:, :, 0]) + np.square(vd_vec_bstack[:, :, 1])
         )
 
-        product_org = distance_vec_bstack * vd_vec_bstack
+        # The distance points TO the i walker, but we need the vector pointing away
+        # from it, so we multiply by -1
+        product_org = -1 * distance_vec_bstack * vd_vec_bstack
         product_dot = product_org[:, :, 0] + product_org[:, :, 1]
         product_mag = distance_mag_nstack * vd_mag_nstack
         theta_org = np.arccos(product_dot / product_mag)
         theta_con = theta_org < theta_max
         theta = theta_con
 
-        theta_bstack = np.stack((theta, theta), axis=2)
+        theta_bstack = np.broadcast_to(theta[:, :, np.newaxis], (*theta.shape, 2))
 
         k = (
             A
@@ -316,3 +306,15 @@ class Solver:
             )
         ] *= -1
         return vd
+
+    def iterate(self):
+        self._x = self._x + self.delta_t * self._u
+
+        vd = self.__calc_vdterm()
+        self._f = self.__calc_f(vd)
+        self._ksum = np.sum(self.__calc_k(vd), axis=1)
+        acceleration = self._f + self._ksum + self.__calc_e()
+
+        self._u = self._u + self._delta_t * acceleration
+
+        self._current_time = self._current_time + self._delta_t
