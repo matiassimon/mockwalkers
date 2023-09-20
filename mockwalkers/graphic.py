@@ -85,7 +85,7 @@ class ArrowCollections:
         marker_scale = kwargs.get("markerscale", 10)
 
         heads = PatchTransCollection(
-            (MarkerStyle("v"),), offset_transform=self._ax.transData, **kwargs
+            (MarkerStyle(">"),), offset_transform=self._ax.transData, **kwargs
         )
         # heads.set_patch_transforms([mtransform.Affine2D().rotate_deg(15)])
         self._ax.add_collection(heads)
@@ -100,7 +100,7 @@ class ArrowCollections:
     def __calc_heads_transforms(self, d):
         return [
             self._base_heads_transforms + mtransform.Affine2D().rotate(angle)
-            for angle in np.arctan2(d[:, 0], d[:, 1])
+            for angle in np.arctan2(d[:, 1], d[:, 0])
         ]
 
     def __update(self, p: ArrayLike, d: ArrayLike):
