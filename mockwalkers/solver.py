@@ -1,4 +1,6 @@
 import numpy as np
+from .walkers import Walkers
+from .vdcalculator import VdCalculator
 
 CORRIDOR_LENGTH = 20.0
 CORRIDOR_WIDTH = 2.0
@@ -8,18 +10,8 @@ class Solver:
     """
     A class used to represent a Solver
 
-    ...
-
     Attributes
     ----------
-    _n : int
-        the number of individuals for the crowd simulation
-    _x : ndarray
-        an n x 2 array containing the two-dimensional positions of the individuals
-    _u : ndarray
-        an n x 2 array containing the two-dimensional velocities of the individuals
-    _types : ndarray
-        an n x 1 array containing the types of individuals in the crowd
     _delta_t : float
         the discrete time step (in seconds) used for the crowd simulation
     _tau : float
@@ -30,49 +22,27 @@ class Solver:
 
     Methods
     ----------
-    x()
-        Returns the array _x containing the two-dimensional positions of the individuals
-    u()
-        Returns the array _u containing the two-dimensional velocities of the individuals
-    types()
-        Returns the array _types containing the types of individuals in the crowd
     delta_t()
         Returns the float corresponding to the discrete time step (in seconds) used for the crowd simulation
     tau()
         Returns the float corresponding to the relaxation time in seconds (default 3)
-    x(x)
-        Sets the array _x containing the two-dimensional positions of the individuals
-    u(u)
-        Sets the array _u containing the two-dimensional velocities of the individuals
-    types(types)
-        Sets the array _types containing the types of individuals in the crowd
     delta_t(delta_t)
         Sets the float corresponding to the discrete time step (in seconds) used for the crowd simulation
     tau(tau)
         Sets the float corresponding to the relaxation time in seconds (default 3)
     """
 
-    def __init__(self, n: int, x: np.ndarray, u: np.ndarray, types, delta_t: float):
+    def __init__(self, walkers: Walkers, delta_t: float, vd_calcs: [VdCalculator]):
         """
         Parameters
-        -------pyth---
-        n : int
-            the number of individuals for the crowd simulation
-        x : ndarray
-            an n x 2 array containing the two-dimensional positions of the individuals
-        u : ndarray
-            an n x 2 array containing the two-dimensional velocities of the individuals
-        types : ndarray
-            an n x 1 array containing the types of individuals in the crowd
+        ----------
         delta_t : float
             the discrete time step (in seconds) used for the crowd simulation
         """
 
-        self._n = n
-        self._x = x
-        self._u = u
-        self._types = types
+        self._walkers = walkers
         self._delta_t = delta_t
+        self._vd_calcs = vd_calcs
 
         # Impermeability constant
         self._imp_constant = float(1)
@@ -94,28 +64,16 @@ class Solver:
         self._current_time = float(0)
 
         # Propulsion term
-        self._f = np.empty(self._x.shape)
+        self._f = np.empty(walkers.x.shape)
         self._f.fill(np.nan)
 
         # Interaction term
-        self._ksum = np.empty(self._x.shape)
+        self._ksum = np.empty(walkers.x.shape)
         self._ksum.fill(np.nan)
 
     @property
-    def n(self):
-        return self._n
-
-    @property
-    def x(self):
-        return self._x
-
-    @property
-    def u(self):
-        return self._u
-
-    @property
-    def types(self):
-        return self._types
+    def walkers(self):
+        return self._walkers
 
     @property
     def delta_t(self):
@@ -157,20 +115,9 @@ class Solver:
     def ksum(self):
         return self._ksum
 
-    @x.setter
-    def x(self, x):
-        self._x = x
-        return self._x
-
-    @u.setter
-    def u(self, u):
-        self._u = u
-        return self._u
-
-    @types.setter
-    def types(self, types: np.ndarray):
-        self._types = types
-        return self._types
+    @property
+    def vd_calcs(self):
+        return self._vd_calcs
 
     @delta_t.setter
     def delta_t(self, delta_t):
@@ -216,16 +163,16 @@ class Solver:
         vd : ndarray
             the desired velocity field (in meters per second)
         """
-        f = (vd - self.u) / self.tau
+        f = (vd - self._walkers.u) / self.tau
         return f
 
     def __calc_e(self):
         """Implementation of the private method of the Solver class used to calculate
         the E term of the eq. ■, aimed to the corridor example.
         """
-        dbottom = self._x[:, 1]
+        dbottom = self._walkers.x[:, 1]
         dtop = CORRIDOR_WIDTH - dbottom
-        e = np.zeros((self._n, 2))
+        e = np.zeros((self._walkers.n, 2))
         eytop = -self._imp_constant * np.exp(-dtop / self._rprime)
         eybottom = self._imp_constant * np.exp(-dbottom / self._rprime)
         e[:, 1] = eytop + eybottom
@@ -236,8 +183,8 @@ class Solver:
         R = self._int_radius
         theta_max = self._theta_max
 
-        X = self._x[:, 0]
-        Y = self._x[:, 1]
+        X = self._walkers.x[:, 0]
+        Y = self._walkers.x[:, 1]
 
         [Xj, Xi] = np.meshgrid(X, X)
         [Yj, Yi] = np.meshgrid(Y, Y)
@@ -260,8 +207,8 @@ class Solver:
             U = vd[:, 0]
             V = vd[:, 1]
         elif self._vel_option == int(1):
-            U = self._u[:, 0]
-            V = self._u[:, 1]
+            U = self._walkers.u[:, 0]
+            V = self._walkers.u[:, 1]
 
         [Ui, Uj] = np.meshgrid(U, U)
         [Vi, Vj] = np.meshgrid(V, V)
@@ -291,30 +238,18 @@ class Solver:
         k = np.nan_to_num(k)
         return k
 
-    def __calc_vdterm(self):
-        """Implementation of the private method of the Solver
-        class used to obtain the v_d term for the eq. ■, aimed to the corridor example.
-        """
-        vd = np.zeros([self._n, 2])
-        vd[:, 0] = self._vdmag
-        vd[
-            np.reshape(
-                self._types == 1,
-                [
-                    self._n,
-                ],
-            )
-        ] *= -1
-        return vd
+    def __calc_vd(self):
+        """"""
+        return np.sum([vdcalc(self._walkers) for vdcalc in self._vd_calcs], axis=0)
 
     def iterate(self):
-        self._x = self._x + self.delta_t * self._u
+        self._walkers.x = self._walkers.x + self.delta_t * self._walkers.u
 
-        vd = self.__calc_vdterm()
-        self._f = self.__calc_f(vd)
-        self._ksum = np.sum(self.__calc_k(vd), axis=1)
-        acceleration = self._f + self._ksum + self.__calc_e()
+        self._vd = self.__calc_vd()
+        self._f = self.__calc_f(self._vd)
+        self._ksum = np.sum(self.__calc_k(self._vd), axis=1)
+        self._acceleration = self._f + self._ksum + self.__calc_e()
 
-        self._u = self._u + self._delta_t * acceleration
+        self._walkers.u = self._walkers.u + self._delta_t * self._acceleration
 
         self._current_time = self._current_time + self._delta_t
