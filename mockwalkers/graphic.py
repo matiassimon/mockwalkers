@@ -1,15 +1,19 @@
-from matplotlib.artist import allow_rasterization
 import numpy as np
 from numpy.typing import ArrayLike
-import matplotlib as mpl
+import matplotlib.pyplot as plt
 from matplotlib.collections import (
     LineCollection,
     PatchCollection,
 )
 from matplotlib.markers import MarkerStyle
 from matplotlib.patheffects import Stroke
-import matplotlib.transforms as mtransform
-from mockwalkers.solver import Solver
+from matplotlib.axes import Axes
+from matplotlib.patches import Circle
+from matplotlib.transforms import IdentityTransform, Affine2D
+from matplotlib.backend_bases import RendererBase
+
+from .solver import Solver, Walkers
+from .vdcalculator import VdCalculator
 
 
 class PatchTransCollection(PatchCollection):
@@ -29,8 +33,8 @@ class PatchTransCollection(PatchCollection):
         ]
 
 
-class Walkers(PatchTransCollection):
-    def __init__(self, ax: mpl.axes.Axes, solver: Solver, **kwargs):
+class WalkersCollection(PatchTransCollection):
+    def __init__(self, ax: Axes, solver: Solver, **kwargs):
         """"""
         self._ax = ax
         self._solver = solver
@@ -40,28 +44,28 @@ class Walkers(PatchTransCollection):
 
         super().__init__(
             (
-                mpl.patches.Circle(
+                Circle(
                     (0, 0),
                     solver.int_radius,
                 ),
             ),
-            offsets=solver.x,
+            offsets=solver.walkers.x,
             offset_transform=ax.transData,
             **kwargs
         )
 
         ax.add_collection(self)
-        self.set_transform(mtransform.IdentityTransform())
+        self.set_transform(IdentityTransform())
         self.set_patch_transforms([ax.transData])
 
     def update(self):
-        self.set_offsets(self._solver.x)
+        self.set_offsets(self._solver.walkers.x)
 
 
 class ArrowCollections:
     def __init__(
         self,
-        ax: mpl.axes.Axes,
+        ax: Axes,
         p: ArrayLike,
         d: ArrayLike,
         tails_kwargs: dict = {},
@@ -85,12 +89,12 @@ class ArrowCollections:
         marker_scale = kwargs.get("markerscale", 10)
 
         heads = PatchTransCollection(
-            (MarkerStyle("v"),), offset_transform=self._ax.transData, **kwargs
+            (MarkerStyle(">"),), offset_transform=self._ax.transData, **kwargs
         )
-        # heads.set_patch_transforms([mtransform.Affine2D().rotate_deg(15)])
+        # heads.set_patch_transforms([Affine2D().rotate_deg(15)])
         self._ax.add_collection(heads)
-        heads.set_transform(mtransform.IdentityTransform())
-        self._base_heads_transforms = mtransform.Affine2D().scale(marker_scale)
+        heads.set_transform(IdentityTransform())
+        self._base_heads_transforms = Affine2D().scale(marker_scale)
         heads.set_patch_transforms([self._base_heads_transforms])
         return heads
 
@@ -99,8 +103,8 @@ class ArrowCollections:
 
     def __calc_heads_transforms(self, d):
         return [
-            self._base_heads_transforms + mtransform.Affine2D().rotate(angle)
-            for angle in np.arctan2(d[:, 0], d[:, 1])
+            self._base_heads_transforms + Affine2D().rotate(angle)
+            for angle in np.arctan2(d[:, 1], d[:, 0])
         ]
 
     def __update(self, p: ArrayLike, d: ArrayLike):
@@ -120,28 +124,32 @@ class ArrowCollections:
         self.heads.remove()
 
 
-class WalkersPropulsion(ArrowCollections):
-    def __init__(self, ax: mpl.axes.Axes, solver: Solver):
+class WalkersPropulsionCollection(ArrowCollections):
+    def __init__(self, ax: Axes, solver: Solver):
         """"""
         self._ax = ax
         self._solver = solver
 
-        super().__init__(ax, solver.x, solver.f, {"color": "C1"}, {"color": "C1"})
+        super().__init__(
+            ax, solver.walkers.x, solver.f, {"color": "C1"}, {"color": "C1"}
+        )
 
     def update(self):
-        super().update(self._solver.x, self._solver.f)
+        super().update(self._solver.walkers.x, self._solver.f)
 
 
-class WalkersInteraction(ArrowCollections):
-    def __init__(self, ax: mpl.axes.Axes, solver: Solver):
+class WalkersInteractionCollection(ArrowCollections):
+    def __init__(self, ax: Axes, solver: Solver):
         """"""
         self._ax = ax
         self._solver = solver
 
-        super().__init__(ax, solver.x, solver.ksum, {"color": "C2"}, {"color": "C2"})
+        super().__init__(
+            ax, solver.walkers.x, solver.ksum, {"color": "C2"}, {"color": "C2"}
+        )
 
     def update(self):
-        super().update(self._solver.x, self._solver.ksum)
+        super().update(self._solver.walkers.x, self._solver.ksum)
 
 
 class WalkersTracesSegments:
@@ -171,16 +179,16 @@ class WalkersTracesSegments:
         self._segs_idx %= self._nwalkers * self._size
 
 
-class WalkersTraces(LineCollection):
-    def __init__(self, ax: mpl.axes.Axes, solver: Solver):
+class WalkersTracesCollection(LineCollection):
+    def __init__(self, ax: Axes, solver: Solver):
         """"""
         self._ax = ax
         self._solver = solver
 
         linewidths = 2
         zorder = 1
-        cmap = mpl.pyplot.get_cmap("turbo_r")
-        norm = mpl.pyplot.Normalize(0, 2)
+        cmap = plt.get_cmap("turbo_r")
+        norm = plt.Normalize(0, 2)
         path_effects = [Stroke(capstyle="round")]
         alpha = 0.5
 
@@ -196,29 +204,96 @@ class WalkersTraces(LineCollection):
 
         ax.add_collection(self)
 
-        self._segs = WalkersTracesSegments(solver.n)
+        self._segs = WalkersTracesSegments(solver.walkers.n)
         self.update()
 
     def update(self):
-        self._segs.add(self._solver.x, self._solver.u)
+        self._segs.add(self._solver.walkers.x, self._solver.walkers.u)
         self.set_segments(self._segs.segs)
         self.set_array(self._segs.vels)
+
+
+class VdCalculatorLineCollection(LineCollection):
+    def __init__(self, ax: Axes, vdcalc: VdCalculator):
+        self._vdcalc = vdcalc
+        self._ax = ax
+        self._n = 50
+        self._base_sample_points = self.__calc_base_sample_points(self._n)
+        self._vdscale = 1
+        self._sk = self.__create_sk(0.8 * (1 / self._n), 0.2 * (1 / self._n))
+        self._nansk = np.empty((3, 2))
+        self._nansk.fill(np.nan)
+
+        super().__init__([])
+
+        ax.add_collection(self)
+        self.set_transform(ax.transAxes)
+        self.set_color("lightgray")
+        self.set_zorder(-1)
+
+    def __calc_base_sample_points(self, n):
+        [l, s] = np.linspace(0, 1, n, endpoint=False, retstep=True)
+        l += s / 2
+        return np.stack(np.meshgrid(l, l), axis=2).reshape(n * n, 2)
+
+    def __create_sk(self, h, w):
+        return np.array([[-w / 2, h / 2], [w / 2, 0], [-w / 2, -h / 2]])
+
+    def __calc_segs(self):
+        n = self._n
+
+        self._sample_walkers = Walkers(
+            self._ax.transData.inverted().transform(
+                self._ax.transAxes.transform(self._base_sample_points)
+            ),
+            np.empty(self._base_sample_points.shape),
+        )
+        self._sample_vds = self._vdcalc(self._sample_walkers)
+        self._sample_vds_norm = np.linalg.norm(self._sample_vds, axis=1) / self._vdscale
+        self._sample_vds_angles = np.arctan2(
+            self._sample_vds[:, 1], self._sample_vds[:, 0]
+        )
+
+        trans = Affine2D()
+        self._final_segs = np.empty((n * n, 3, 2))
+
+        for i in range(n * n):
+            if self._sample_vds_norm[i] == 0.0:
+                self._final_segs[i] = self._nansk
+                continue
+
+            trans.clear()
+            trans.scale(self._sample_vds_norm[i], 1)
+            trans.rotate(self._sample_vds_angles[i])
+            trans.translate(
+                self._base_sample_points[i][0], self._base_sample_points[i][1]
+            )
+            self._final_segs[i] = trans.transform(self._sk)
+
+        return self._final_segs
+
+    def draw(self, renderer: RendererBase) -> None:
+        self.set_segments(self.__calc_segs())
+        return super().draw(renderer)
 
 
 class Graphic:
     def __init__(
         self,
-        ax: mpl.axes.Axes,
+        ax: Axes,
         solver: Solver,
     ) -> None:
         """"""
         self._ax = ax
         self._solver = solver
 
-        self.walkers = Walkers(ax, solver)
-        self.walkers_propulsion = WalkersPropulsion(ax, solver)
-        self.walkers_interaction = WalkersInteraction(ax, solver)
-        self.walkers_traces = WalkersTraces(ax, solver)
+        self.walkers = WalkersCollection(ax, solver)
+        self.walkers_propulsion = WalkersPropulsionCollection(ax, solver)
+        self.walkers_interaction = WalkersInteractionCollection(ax, solver)
+        self.walkers_traces = WalkersTracesCollection(ax, solver)
+        self.vd_calcs = [
+            VdCalculatorLineCollection(ax, vd_calc) for vd_calc in solver.vd_calcs
+        ]
 
     def update(self):
         self.walkers.update()
@@ -231,3 +306,5 @@ class Graphic:
         self.walkers_propulsion.remove()
         self.walkers_interaction.remove()
         self.walkers_traces.remove()
+        for vd_calc in self.vd_calcs:
+            vd_calc.remove()
