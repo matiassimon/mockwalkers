@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import numpy as np
 from numpy.typing import ArrayLike
 import matplotlib.pyplot as plt
@@ -17,6 +18,17 @@ from .vdcalculator import VdCalculator
 from .obstacle import Obstacle, RectangleObstacle
 
 
+class GraphicElement(ABC):
+    @property
+    @abstractmethod
+    def artists(self):
+        pass
+
+    @abstractmethod
+    def update(self):
+        pass
+
+
 class PatchTransCollection(PatchCollection):
     _patch_transforms = None
     _mask = np.array([[1, 1, 0], [1, 1, 0], [0, 0, 1]])
@@ -34,7 +46,7 @@ class PatchTransCollection(PatchCollection):
         ]
 
 
-class WalkersCollection(PatchTransCollection):
+class WalkersElement(GraphicElement):
     def __init__(self, ax: Axes, solver: Solver, **kwargs):
         """"""
         self._ax = ax
@@ -43,7 +55,7 @@ class WalkersCollection(PatchTransCollection):
         if "color" not in kwargs:
             kwargs["color"] = "C0"
 
-        super().__init__(
+        self._artist = PatchTransCollection(
             (
                 Circle(
                     (0, 0),
@@ -55,15 +67,20 @@ class WalkersCollection(PatchTransCollection):
             **kwargs
         )
 
-        ax.add_collection(self)
-        self.set_transform(IdentityTransform())
-        self.set_patch_transforms([ax.transData])
+        ax.add_collection(self._artist)
+        self._artist.set_transform(IdentityTransform())
+        self._artist.set_patch_transforms([ax.transData])
+
+    @property
+    def artists(self):
+        return [self._artist]
 
     def update(self):
-        self.set_offsets(self._solver.walkers.x)
+        self._artist.set_offsets(self._solver.walkers.x)
+        return [self._artist]
 
 
-class ArrowCollections:
+class ArrowElement(GraphicElement):
     def __init__(
         self,
         ax: Axes,
@@ -79,7 +96,7 @@ class ArrowCollections:
         self.tails = self.__create_tails(**tails_kwargs)
         self.heads = self.__create_heads(**heads_kwargs)
 
-        self.__update(p, d)
+        self.set_arrows(p, d)
 
     def __create_tails(self, **kwargs):
         tails = LineCollection([], **kwargs)
@@ -108,24 +125,18 @@ class ArrowCollections:
             for angle in np.arctan2(d[:, 1], d[:, 0])
         ]
 
-    def __update(self, p: ArrayLike, d: ArrayLike):
+    def set_arrows(self, p: ArrayLike, d: ArrayLike):
         self.tails.set_segments(self.__calc_segments(p, d))
         self.heads.set_patch_transforms(self.__calc_heads_transforms(d))
         self.heads.set_offsets(p + d)
+        return [self.tails, self.heads]
 
-    def update(self, p: ArrayLike, d: ArrayLike):
-        self.__update(p, d)
-
-    def set_visible(self, b):
-        self.tails.set_visible(b)
-        self.heads.set_visible(b)
-
-    def remove(self):
-        self.tails.remove()
-        self.heads.remove()
+    @property
+    def artists(self):
+        return [self.tails, self.heads]
 
 
-class WalkersPropulsionCollection(ArrowCollections):
+class WalkersPropulsionElement(ArrowElement):
     def __init__(self, ax: Axes, solver: Solver):
         """"""
         self._ax = ax
@@ -136,10 +147,10 @@ class WalkersPropulsionCollection(ArrowCollections):
         )
 
     def update(self):
-        super().update(self._solver.walkers.x, self._solver.f)
+        return self.set_arrows(self._solver.walkers.x, self._solver.f)
 
 
-class WalkersInteractionCollection(ArrowCollections):
+class WalkersInteractionElement(ArrowElement):
     def __init__(self, ax: Axes, solver: Solver):
         """"""
         self._ax = ax
@@ -150,10 +161,10 @@ class WalkersInteractionCollection(ArrowCollections):
         )
 
     def update(self):
-        super().update(self._solver.walkers.x, self._solver.ksum)
+        return self.set_arrows(self._solver.walkers.x, self._solver.ksum)
 
 
-class WalkersObstaclesCollection(ArrowCollections):
+class WalkersObstaclesCollection(ArrowElement):
     def __init__(self, ax: Axes, solver: Solver):
         """"""
         self._ax = ax
@@ -164,7 +175,7 @@ class WalkersObstaclesCollection(ArrowCollections):
         )
 
     def update(self):
-        super().update(self._solver.walkers.x, self._solver.e)
+        return self.set_arrows(self._solver.walkers.x, self._solver.e)
 
 
 class WalkersTracesSegments:
@@ -194,7 +205,7 @@ class WalkersTracesSegments:
         self._segs_idx %= self._nwalkers * self._size
 
 
-class WalkersTracesCollection(LineCollection):
+class WalkersTracesElement(GraphicElement):
     def __init__(self, ax: Axes, solver: Solver):
         """"""
         self._ax = ax
@@ -207,7 +218,7 @@ class WalkersTracesCollection(LineCollection):
         path_effects = [Stroke(capstyle="round")]
         alpha = 0.5
 
-        super().__init__(
+        self._artist = LineCollection(
             [],
             linewidths=linewidths,
             zorder=zorder,
@@ -217,72 +228,53 @@ class WalkersTracesCollection(LineCollection):
             alpha=alpha,
         )
 
-        ax.add_collection(self)
+        ax.add_collection(self._artist)
 
         self._segs = WalkersTracesSegments(solver.walkers.n)
         self.update()
 
     def update(self):
         self._segs.add(self._solver.walkers.x, self._solver.walkers.u)
-        self.set_segments(self._segs.segs)
-        self.set_array(self._segs.vels)
+        self._artist.set_segments(self._segs.segs)
+        self._artist.set_array(self._segs.vels)
+        return [self._artist]
+
+    @property
+    def artists(self):
+        return [self._artist]
 
 
-class VdCalculatorLineCollection(LineCollection):
-    def __init__(self, ax: Axes, vdcalc: VdCalculator):
-        self._vdcalc = vdcalc
-        self._ax = ax
-        self._n = 50
-        self._base_sample_points = self.__calc_base_sample_points(self._n)
-        self._vdscale = 1
-        self._sk = self.__create_sk(0.8 * (1 / self._n), 0.2 * (1 / self._n))
+class SampleAnglesCollection(LineCollection):
+    def __init__(self, sample_points: np.ndarray, sampler, angles_scale):
+        super().__init__([])
+        self._sample_points = sample_points
+        self._sampler = sampler
+        self._sample_scale = 1
+        self._sk = self.__create_sk(0.8 * angles_scale, 0.2 * angles_scale)
         self._nansk = np.empty((3, 2))
         self._nansk.fill(np.nan)
-
-        super().__init__([])
-
-        ax.add_collection(self)
-        self.set_transform(ax.transAxes)
-        self.set_color("lightgray")
-        self.set_zorder(-2)
-
-    def __calc_base_sample_points(self, n):
-        [l, s] = np.linspace(0, 1, n, endpoint=False, retstep=True)
-        l += s / 2
-        return np.stack(np.meshgrid(l, l), axis=2).reshape(n * n, 2)
 
     def __create_sk(self, h, w):
         return np.array([[-w / 2, h / 2], [w / 2, 0], [-w / 2, -h / 2]])
 
     def __calc_segs(self):
-        n = self._n
+        self._samples = self._sampler(self._sample_points)
+        self._samples_norm = np.linalg.norm(self._samples, axis=1) / self._sample_scale
+        self._samples_angles = np.arctan2(self._samples[:, 1], self._samples[:, 0])
 
-        self._sample_walkers = Walkers(
-            self._ax.transData.inverted().transform(
-                self._ax.transAxes.transform(self._base_sample_points)
-            ),
-            np.empty(self._base_sample_points.shape),
-        )
-        self._sample_vds = self._vdcalc(self._sample_walkers)
-        self._sample_vds_norm = np.linalg.norm(self._sample_vds, axis=1) / self._vdscale
-        self._sample_vds_angles = np.arctan2(
-            self._sample_vds[:, 1], self._sample_vds[:, 0]
-        )
-
+        n = len(self._sample_points)
         trans = Affine2D()
-        self._final_segs = np.empty((n * n, 3, 2))
+        self._final_segs = np.empty((n, 3, 2))
 
-        for i in range(n * n):
-            if self._sample_vds_norm[i] == 0.0:
+        for i in range(n):
+            if self._samples_norm[i] == 0.0:
                 self._final_segs[i] = self._nansk
                 continue
 
             trans.clear()
-            trans.scale(self._sample_vds_norm[i], 1)
-            trans.rotate(self._sample_vds_angles[i])
-            trans.translate(
-                self._base_sample_points[i][0], self._base_sample_points[i][1]
-            )
+            trans.scale(self._samples_norm[i], 1)
+            trans.rotate(self._samples_angles[i])
+            trans.translate(self._sample_points[i][0], self._sample_points[i][1])
             self._final_segs[i] = trans.transform(self._sk)
 
         return self._final_segs
@@ -292,20 +284,67 @@ class VdCalculatorLineCollection(LineCollection):
         return super().draw(renderer)
 
 
-def obstacle_path_factory(ax: Axes, obstacle: Obstacle) -> Patch:
-    zorder = -1
-    color = "darkgray"
-    if isinstance(obstacle, RectangleObstacle):
-        return ax.add_patch(
-            Rectangle(
-                obstacle.xy, obstacle.width, obstacle.height, zorder=zorder, color=color
+class VdCalculatorElement(GraphicElement):
+    def __init__(self, ax: Axes, vdcalc: VdCalculator):
+        self._ax = ax
+        self._vdcalc = vdcalc
+        n = 50
+
+        sample_points = self.__calc_sample_points(n)
+
+        def sampler(sample_points):
+            sample_walkers = Walkers(
+                ax.transData.inverted().transform(
+                    self._ax.transAxes.transform(sample_points)
+                ),
+                np.empty(sample_points.shape),
             )
-        )
+            return vdcalc(sample_walkers)
 
-    raise ValueError("unsoported obstacle")
+        self._artist = SampleAnglesCollection(sample_points, sampler, 1 / n)
+
+        ax.add_collection(self._artist)
+        self._artist.set_transform(ax.transAxes)
+        self._artist.set_color("lightgray")
+        self._artist.set_zorder(-2)
+
+    def __calc_sample_points(self, n):
+        [l, s] = np.linspace(0, 1, n, endpoint=False, retstep=True)
+        l += s / 2
+        return np.stack(np.meshgrid(l, l), axis=2).reshape(n * n, 2)
+
+    def update(self):
+        return []
+
+    @property
+    def artists(self):
+        return [self._artist]
 
 
-class Graphic:
+class ObstacleElement(GraphicElement):
+    def __init__(self, ax: Axes, obstacle: Obstacle):
+        self._ax = ax
+        self._artist = self.__patch_factory(obstacle)
+
+        ax.add_patch(self._artist)
+        self._artist.set_zorder(-1)
+        self._artist.set_color("darkgray")
+
+    def __patch_factory(self, obstacle: Obstacle):
+        if isinstance(obstacle, RectangleObstacle):
+            return Rectangle(obstacle.xy, obstacle.width, obstacle.height)
+
+        raise ValueError("unsoported obstacle")
+
+    @property
+    def artists(self):
+        return [self._artist]
+
+    def update(self):
+        return []
+
+
+class Graphic(GraphicElement):
     def __init__(
         self,
         ax: Axes,
@@ -315,32 +354,47 @@ class Graphic:
         self._ax = ax
         self._solver = solver
 
-        self.walkers = WalkersCollection(ax, solver)
-        self.walkers_propulsion = WalkersPropulsionCollection(ax, solver)
-        self.walkers_interaction = WalkersInteractionCollection(ax, solver)
+        self.walkers = WalkersElement(ax, solver)
+        self.walkers_propulsion = WalkersPropulsionElement(ax, solver)
+        self.walkers_interaction = WalkersInteractionElement(ax, solver)
         self.walkers_obstacles = WalkersObstaclesCollection(ax, solver)
-        self.walkers_traces = WalkersTracesCollection(ax, solver)
+        self.walkers_traces = WalkersTracesElement(ax, solver)
         self.vd_calcs = [
-            VdCalculatorLineCollection(ax, vd_calc) for vd_calc in solver.vd_calcs
+            VdCalculatorElement(ax, vd_calc) for vd_calc in solver.vd_calcs
         ]
         self.obstacles = [
-            obstacle_path_factory(ax, obstacle) for obstacle in solver.obstacles
+            ObstacleElement(ax, obstacle) for obstacle in solver.obstacles
         ]
 
+        self.all_elements = [
+            self.walkers,
+            self.walkers_propulsion,
+            self.walkers_interaction,
+            self.walkers_obstacles,
+            self.walkers_traces,
+            *self.vd_calcs,
+            *self.obstacles,
+        ]
+
+        self.update_elements = [
+            self.walkers,
+            self.walkers_propulsion,
+            self.walkers_interaction,
+            self.walkers_obstacles,
+            self.walkers_traces,
+        ]
+
+    @property
+    def artists(self):
+        return [a for element in self.all_elements for a in element.artists]
+
+    @property
+    def update_artists(self):
+        return [a for element in self.update_elements for a in element.artists]
+
     def update(self):
-        self.walkers.update()
-        self.walkers_propulsion.update()
-        self.walkers_interaction.update()
-        self.walkers_obstacles.update()
-        self.walkers_traces.update()
+        return [a for element in self.update_elements for a in element.update()]
 
     def remove(self):
-        self.walkers.remove()
-        self.walkers_propulsion.remove()
-        self.walkers_interaction.remove()
-        self.walkers_obstacles.remove()
-        self.walkers_traces.remove()
-        for vd_calc in self.vd_calcs:
-            vd_calc.remove()
-        for obstacle in self.obstacles:
-            obstacle.remove()
+        for artist in self.artists:
+            artist.remove()
