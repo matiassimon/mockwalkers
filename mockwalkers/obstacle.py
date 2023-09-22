@@ -24,9 +24,21 @@ class RectangleObstacle(Obstacle):
         self._y2 = max(y, y + dy)
         super().__init__(imp_constant)
 
+    @property
+    def xy(self):
+        return (self._x1, self._y1)
+
+    @property
+    def width(self):
+        return self._x2 - self._x1
+
+    @property
+    def height(self):
+        return self._y2 - self._y1
+
     def distance(self, walkers: Walkers) -> np.ndarray:
         x = walkers.x
 
-        closest_x = np.clip(x[:, 0], self._x1, self.x2)
+        closest_x = np.clip(x[:, 0], self._x1, self._x2)
         closest_y = np.clip(x[:, 1], self._y1, self._y2)
-        return np.column_stack((closest_x, closest_y))
+        return x - np.column_stack((closest_x, closest_y))
