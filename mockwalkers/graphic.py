@@ -136,7 +136,7 @@ class ArrowElement(GraphicElement):
         return [self.tails, self.heads]
 
 
-class WalkersPropulsionElement(ArrowElement):
+class WalkersFElement(ArrowElement):
     def __init__(self, ax: Axes, solver: Solver):
         """"""
         self._ax = ax
@@ -150,7 +150,7 @@ class WalkersPropulsionElement(ArrowElement):
         return self.set_arrows(self._solver.walkers.x, self._solver.f)
 
 
-class WalkersInteractionElement(ArrowElement):
+class WalkersKSumElement(ArrowElement):
     def __init__(self, ax: Axes, solver: Solver):
         """"""
         self._ax = ax
@@ -164,7 +164,7 @@ class WalkersInteractionElement(ArrowElement):
         return self.set_arrows(self._solver.walkers.x, self._solver.ksum)
 
 
-class WalkersObstaclesCollection(ArrowElement):
+class WalkersEElement(ArrowElement):
     def __init__(self, ax: Axes, solver: Solver):
         """"""
         self._ax = ax
@@ -284,7 +284,7 @@ class SampleAnglesCollection(LineCollection):
         return super().draw(renderer)
 
 
-class VdCalculatorElement(GraphicElement):
+class VdCalcElement(GraphicElement):
     def __init__(self, ax: Axes, vdcalc: VdCalculator):
         self._ax = ax
         self._vdcalc = vdcalc
@@ -349,40 +349,52 @@ class Graphic(GraphicElement):
         self,
         ax: Axes,
         solver: Solver,
+        f_arrows: bool = False,
+        ksum_arrows: bool = False,
+        e_arrows: bool = False,
+        traces: bool = True,
+        vd_calcs: bool = True,
+        obstacles: bool = True,
     ) -> None:
         """"""
         self._ax = ax
         self._solver = solver
 
+        self.all_elements = []
+        self.update_elements = []
         self.walkers = WalkersElement(ax, solver)
-        self.walkers_propulsion = WalkersPropulsionElement(ax, solver)
-        self.walkers_interaction = WalkersInteractionElement(ax, solver)
-        self.walkers_obstacles = WalkersObstaclesCollection(ax, solver)
-        self.walkers_traces = WalkersTracesElement(ax, solver)
-        self.vd_calcs = [
-            VdCalculatorElement(ax, vd_calc) for vd_calc in solver.vd_calcs
-        ]
-        self.obstacles = [
-            ObstacleElement(ax, obstacle) for obstacle in solver.obstacles
-        ]
+        self.all_elements.append(self.walkers)
+        self.update_elements.append(self.walkers)
 
-        self.all_elements = [
-            self.walkers,
-            self.walkers_propulsion,
-            self.walkers_interaction,
-            self.walkers_obstacles,
-            self.walkers_traces,
-            *self.vd_calcs,
-            *self.obstacles,
-        ]
+        if f_arrows:
+            self.walkers_f = WalkersFElement(ax, solver)
+            self.all_elements.append(self.walkers_f)
+            self.update_elements.append(self.walkers_f)
 
-        self.update_elements = [
-            self.walkers,
-            self.walkers_propulsion,
-            self.walkers_interaction,
-            self.walkers_obstacles,
-            self.walkers_traces,
-        ]
+        if ksum_arrows:
+            self.walkers_ksum = WalkersKSumElement(ax, solver)
+            self.all_elements.append(self.walkers_ksum)
+            self.update_elements.append(self.walkers_ksum)
+
+        if e_arrows:
+            self.walkers_e = WalkersEElement(ax, solver)
+            self.all_elements.append(self.walkers_e)
+            self.update_elements.append(self.walkers_e)
+
+        if traces:
+            self.walkers_traces = WalkersTracesElement(ax, solver)
+            self.all_elements.append(self.walkers_traces)
+            self.update_elements.append(self.walkers_traces)
+
+        if vd_calcs:
+            self.vd_calcs = [VdCalcElement(ax, vd_calc) for vd_calc in solver.vd_calcs]
+            self.all_elements += self.vd_calcs
+
+        if obstacles:
+            self.obstacles = [
+                ObstacleElement(ax, obstacle) for obstacle in solver.obstacles
+            ]
+            self.all_elements += self.obstacles
 
     @property
     def artists(self):
