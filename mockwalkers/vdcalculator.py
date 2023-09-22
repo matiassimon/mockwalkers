@@ -30,7 +30,8 @@ class RectangleVelocityBooster(VdCalculator):
             & (x[:, 1] > self._y1)
             & (x[:, 1] < self._y2)
         )
+
         if types is not None:
-            mask &= (np.bitwise_and(types, self._types_mask) != 0x0000)
+            mask &= np.bitwise_and(types, self._types_mask) != 0x0000
         mask = np.broadcast_to(mask[:, np.newaxis], x.shape)
         return np.where(mask, np.asarray([self._vdx, self._vdy]), np.zeros(2))
