@@ -47,7 +47,7 @@ class WalkersCollection(PatchTransCollection):
             (
                 Circle(
                     (0, 0),
-                    solver.int_radius,
+                    solver.walkers.int_radius,
                 ),
             ),
             offsets=solver.walkers.x,
