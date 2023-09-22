@@ -1,54 +1,59 @@
-# This file is part of MockWalkers.
-# 
-# MockWalkers is free software: you can redistribute it and/or modify it under the terms of
-# the GNU General Public License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-# 
-# MockWalkers is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-# PURPOSE. See the GNU General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public License along with MockWalkers.
-# If not, see <https://www.gnu.org/licenses/>.
-
-import streamlit as st
-import streamlit.components.v1 as components
+import mockwalkers as mckw
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 import numpy as np
-import solver
-import graphic
-import time
 
-n = 50
-u0 = np.zeros((n,2))
-#types = np.ones((n,1))
-types = np.ones((n,1))
-types[n//2:] = 2
+n_walkers = 100
+corridor_width = 40
+corridor_height = 7
+x = np.random.rand(n_walkers, 2)
+x[:, 0] *= corridor_width
+x[:, 1] *= corridor_height
+types = np.concatenate(
+    (np.array([0x01]).repeat(n_walkers // 2), np.array([0x02]).repeat(n_walkers // 2))
+)
+walkers = mckw.Walkers(x, np.zeros((n_walkers, 2)), types)
+delta_t = 0.001
+vd_calcs = [
+    mckw.RectangleVelocityBooster(-corridor_width, 0, 3*corridor_width, corridor_height, 1, 0, 0x01),
+    mckw.RectangleVelocityBooster(-corridor_width, 0, 3*corridor_width, corridor_height, -1, 0, 0x02),
+]
+obstacles = [
+    mckw.RectangleObstacle(0, 0, corridor_width, -1),
+    mckw.RectangleObstacle(0, corridor_height, corridor_width, 1),
+]
+plot_delta_t = 0.1
+final_t = 30
+repeat = False
 
-def gen_rand_x():
-    x = np.random.rand(n,2)
-    x[:,0] *= solver.CORRIDOR_LENGTH
-    x[:,1] *= solver.CORRIDOR_WIDTH
-    return x
+s = None
+g = None
 
-s = solver.Solver(n, gen_rand_x(), u0, types, 0.01)
 fig, ax = plt.subplots()
-g = graphic.Graphic(ax, s)
-g.traces_on = True
+ax.set_xlim(-1, corridor_width + 1)
+ax.set_ylim(-1, corridor_height + 1)
+
+def init_fun():
+    global s
+    global g
+    s = mckw.Solver(walkers, delta_t, vd_calcs, obstacles)
+    if g is not None:
+        g.remove()
+    g = mckw.Graphic(ax, s)
 
 
-st_plot = st.pyplot(fig)
-st_time_label = st.text("Time: -")
+def update(t):
+    while s.current_time < t:
+        s.iterate()
+    g.update()
 
-def update(i):
-    s.iterate()
-    if i%5 == 0:
-        g.update(s)
-        st_plot.pyplot(fig)
-        st_time_label.write(f"Time: {s.current_time:.3f} s")
-        time.sleep(s.delta_t)
 
-for i in range(1000):
-    update(i)
-    
+ani = FuncAnimation(
+    fig,
+    update,
+    init_func=init_fun,
+    frames=np.arange(0, final_t, plot_delta_t),
+    interval=(1000 * plot_delta_t),
+    repeat=repeat,
+)
+plt.show()

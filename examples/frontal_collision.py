@@ -6,13 +6,14 @@ import numpy as np
 walkers = mckw.Walkers(
     np.array([[1, 1], [4, 1]]), np.array([[0, 0], [0, 0]]), np.array([0x01, 0x02])
 )
-delta_t = 0.005
+delta_t = 0.001
 vd_calcs = [
     mckw.RectangleVelocityBooster(0, 0, 10, 10, 1, 0, 0x01),
     mckw.RectangleVelocityBooster(0, 0, 10, 10, -1, 0, 0x02),
 ]
+obstacles = [mckw.RectangleObstacle(-1, 0, 1, 10)]
 plot_delta_t = 0.1
-final_t = 5
+final_t = 30
 repeat = False
 
 s = None
@@ -26,7 +27,7 @@ ax.set_ylim(-1, 3)
 def init_fun():
     global s
     global g
-    s = mckw.Solver(walkers, delta_t, vd_calcs)
+    s = mckw.Solver(walkers, delta_t, vd_calcs, obstacles)
     if g is not None:
         g.remove()
     g = mckw.Graphic(ax, s)
