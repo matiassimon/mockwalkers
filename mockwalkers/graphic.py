@@ -215,7 +215,6 @@ class WalkersTracesElement(GraphicElement):
         zorder = 1
         cmap = plt.get_cmap("turbo_r")
         norm = plt.Normalize(0, 2)
-        path_effects = [Stroke(capstyle="round")]
         alpha = 0.5
 
         self._artist = LineCollection(
@@ -224,7 +223,6 @@ class WalkersTracesElement(GraphicElement):
             zorder=zorder,
             cmap=cmap,
             norm=norm,
-            path_effects=path_effects,
             alpha=alpha,
         )
 
