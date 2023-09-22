@@ -1,4 +1,5 @@
 import numpy as np
+from types import SimpleNamespace
 from .walkers import Walkers
 from .vdcalculator import VdCalculator
 from .obstacle import Obstacle
@@ -73,6 +74,9 @@ class Solver:
         # Obstacles term
         self._e = np.empty(walkers.x.shape)
         self._e.fill(np.nan)
+
+        self._ns_e = SimpleNamespace()
+        self._ns_k = SimpleNamespace()
 
     @property
     def walkers(self):
@@ -153,80 +157,84 @@ class Solver:
         """Implementation of the private method of the Solver class used to calculate
         the E term of the eq. ■, aimed to the corridor example.
         """
-        sum = np.zeros(self._walkers.x.shape)
+        ns = self._ns_e
+        ns.sum = np.zeros(self._walkers.x.shape)
 
         for obstacle in self._obstacles:
-            distance = obstacle.distance(self._walkers)
-            distance_mag = np.linalg.norm(distance, axis=1)
-            distance_mag = np.broadcast_to(distance_mag[:, np.newaxis], distance.shape)
-            sum += (
-                distance
+            ns.dist = obstacle.distance(self._walkers)
+            ns.dist_mag = np.linalg.norm(ns.dist, axis=1)
+            ns.dist_mag_br = np.broadcast_to(ns.dist_mag[:, np.newaxis], ns.dist.shape)
+            ns.sum += (
+                ns.dist
                 * self._obs_constant
-                * np.exp(-distance_mag / obstacle.imp_constant)
-                / distance_mag
+                * np.exp(-ns.dist_mag_br / obstacle.imp_constant)
+                / ns.dist_mag_br
             )
 
-        return sum
+        return ns.sum
 
     def __calc_k(self, vd: np.ndarray):
-        A = self._int_constant
-        R = self._walkers.int_radius
-        theta_max = self._walkers.theta_max
+        ns = self._ns_k
 
-        X = self._walkers.x[:, 0]
-        Y = self._walkers.x[:, 1]
+        ns.A = self._int_constant
+        ns.R = self._walkers.int_radius
+        ns.theta_max = self._walkers.theta_max
 
-        [Xj, Xi] = np.meshgrid(X, X)
-        [Yj, Yi] = np.meshgrid(Y, Y)
+        ns.X = self._walkers.x[:, 0]
+        ns.Y = self._walkers.x[:, 1]
 
-        distance_vec_bstack = np.stack(
-            (np.subtract(Xi, Xj), np.subtract(Yi, Yj)), axis=2
+        [ns.Xj, ns.Xi] = np.meshgrid(ns.X, ns.X, copy=False)
+        [ns.Yj, ns.Yi] = np.meshgrid(ns.Y, ns.Y, copy=False)
+
+        ns.dist_vec_bstack = np.stack(
+            (np.subtract(ns.Xi, ns.Xj), np.subtract(ns.Yi, ns.Yj)), axis=2
         )
-        distance_sqr_nstack = np.square(distance_vec_bstack[:, :, 0]) + np.square(
-            distance_vec_bstack[:, :, 1]
+        ns.dist_sqr_nstack = np.square(ns.dist_vec_bstack[:, :, 0]) + np.square(
+            ns.dist_vec_bstack[:, :, 1]
         )
-        distance_mag_nstack = np.sqrt(distance_sqr_nstack)
-        distance_sqr_bstack = np.broadcast_to(
-            distance_sqr_nstack[:, :, np.newaxis], (*distance_sqr_nstack.shape, 2)
+        ns.dist_mag_nstack = np.sqrt(ns.dist_sqr_nstack)
+        ns.dist_sqr_bstack = np.broadcast_to(
+            ns.dist_sqr_nstack[:, :, np.newaxis], (*ns.dist_sqr_nstack.shape, 2)
         )
-        distance_mag_bstack = np.broadcast_to(
-            distance_mag_nstack[:, :, np.newaxis], (*distance_mag_nstack.shape, 2)
+        ns.dist_mag_bstack = np.broadcast_to(
+            ns.dist_mag_nstack[:, :, np.newaxis], (*ns.dist_mag_nstack.shape, 2)
         )
 
         if self._vel_option == int(0):
-            U = vd[:, 0]
-            V = vd[:, 1]
+            ns.U = vd[:, 0]
+            ns.V = vd[:, 1]
         elif self._vel_option == int(1):
-            U = self._walkers.u[:, 0]
-            V = self._walkers.u[:, 1]
+            ns.U = self._walkers.u[:, 0]
+            ns.V = self._walkers.u[:, 1]
 
-        [Ui, Uj] = np.meshgrid(U, U)
-        [Vi, Vj] = np.meshgrid(V, V)
+        [ns.Ui, ns.Uj] = np.meshgrid(ns.U, ns.U)
+        [ns.Vi, ns.Vj] = np.meshgrid(ns.V, ns.V)
 
-        vd_vec_bstack = np.stack((Uj, Vj), axis=2)
-        vd_mag_nstack = np.sqrt(
-            np.square(vd_vec_bstack[:, :, 0]) + np.square(vd_vec_bstack[:, :, 1])
+        ns.vd_vec_bstack = np.stack((ns.Uj, ns.Vj), axis=2)
+        ns.vd_mag_nstack = np.sqrt(
+            np.square(ns.vd_vec_bstack[:, :, 0]) + np.square(ns.vd_vec_bstack[:, :, 1])
         )
 
         # The distance points TO the i walker, but we need the vector pointing away
         # from it, so we multiply by -1
-        product_org = -1 * distance_vec_bstack * vd_vec_bstack
-        product_dot = product_org[:, :, 0] + product_org[:, :, 1]
-        product_mag = distance_mag_nstack * vd_mag_nstack
-        theta_org = np.arccos(product_dot / product_mag)
-        theta_con = theta_org < theta_max
-        theta = theta_con
+        ns.prod_org = -1 * ns.dist_vec_bstack * ns.vd_vec_bstack
+        ns.prod_dot = ns.prod_org[:, :, 0] + ns.prod_org[:, :, 1]
+        ns.prod_mag = ns.dist_mag_nstack * ns.vd_mag_nstack
+        ns.theta_org = np.arccos(ns.prod_dot / ns.prod_mag)
+        ns.theta = ns.theta_org < ns.theta_max
 
-        theta_bstack = np.broadcast_to(theta[:, :, np.newaxis], (*theta.shape, 2))
-
-        k = (
-            A
-            * np.exp((-distance_sqr_bstack) / (R**2))
-            * (distance_vec_bstack / distance_mag_bstack)
-            * theta_bstack
+        ns.theta_bstack = np.broadcast_to(
+            ns.theta[:, :, np.newaxis], (*ns.theta.shape, 2)
         )
-        k = np.nan_to_num(k)
-        return k
+
+        ns.k = (
+            ns.A
+            * np.exp((-ns.dist_sqr_bstack) / (ns.R**2))
+            * (ns.dist_vec_bstack / ns.dist_mag_bstack)
+            * ns.theta_bstack
+        )
+        ns.k = np.nan_to_num(ns.k)
+        return ns.k
 
     def __calc_vd(self):
         """"""
@@ -239,8 +247,8 @@ class Solver:
         self._f = self.__calc_f(self._vd)
         self._ksum = np.sum(self.__calc_k(self._vd), axis=1)
         self._e = self.__calc_e()
-        self._acceleration = self._f + self._ksum + self._e
+        self._acc = self._f + self._ksum + self._e
 
-        self._walkers.u = self._walkers.u + self._delta_t * self._acceleration
+        self._walkers.u = self._walkers.u + self._delta_t * self._acc
 
         self._current_time = self._current_time + self._delta_t
