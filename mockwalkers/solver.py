@@ -1,9 +1,7 @@
 import numpy as np
 from .walkers import Walkers
 from .vdcalculator import VdCalculator
-
-CORRIDOR_LENGTH = 20.0
-CORRIDOR_WIDTH = 2.0
+from .obstacle import Obstacle
 
 
 class Solver:
@@ -32,7 +30,13 @@ class Solver:
         Sets the float corresponding to the relaxation time in seconds (default 3)
     """
 
-    def __init__(self, walkers: Walkers, delta_t: float, vd_calcs: [VdCalculator]):
+    def __init__(
+        self,
+        walkers: Walkers,
+        delta_t: float,
+        vd_calcs: [VdCalculator],
+        obstacles: [Obstacle],
+    ):
         """
         Parameters
         ----------
@@ -43,10 +47,10 @@ class Solver:
         self._walkers = walkers
         self._delta_t = delta_t
         self._vd_calcs = vd_calcs
+        self._obstacles = obstacles
 
-        # Impermeability constant
-        self._imp_constant = float(1)
-        self._rprime = float(1)
+        # Obstacle interaction constant
+        self._obs_constant = float(10)
 
         # Propulsion constants
         self._tau = float(1)
@@ -70,6 +74,10 @@ class Solver:
         # Interaction term
         self._ksum = np.empty(walkers.x.shape)
         self._ksum.fill(np.nan)
+
+        # Obstacles term
+        self._e = np.empty(walkers.x.shape)
+        self._e.fill(np.nan)
 
     @property
     def walkers(self):
@@ -116,8 +124,16 @@ class Solver:
         return self._ksum
 
     @property
+    def e(self):
+        return self._e
+
+    @property
     def vd_calcs(self):
         return self._vd_calcs
+
+    @property
+    def obstacles(self):
+        return self._obstacles
 
     @delta_t.setter
     def delta_t(self, delta_t):
@@ -170,13 +186,20 @@ class Solver:
         """Implementation of the private method of the Solver class used to calculate
         the E term of the eq. ■, aimed to the corridor example.
         """
-        dbottom = self._walkers.x[:, 1]
-        dtop = CORRIDOR_WIDTH - dbottom
-        e = np.zeros((self._walkers.n, 2))
-        eytop = -self._imp_constant * np.exp(-dtop / self._rprime)
-        eybottom = self._imp_constant * np.exp(-dbottom / self._rprime)
-        e[:, 1] = eytop + eybottom
-        return e
+        sum = np.zeros(self._walkers.x.shape)
+
+        for obstacle in self._obstacles:
+            distance = obstacle.distance(self._walkers)
+            distance_mag = np.linalg.norm(distance, axis=1)
+            distance_mag = np.broadcast_to(distance_mag[:, np.newaxis], distance.shape)
+            sum += (
+                distance
+                * self._obs_constant
+                * np.exp(-distance_mag / obstacle.imp_constant)
+                / distance_mag
+            )
+
+        return sum
 
     def __calc_k(self, vd: np.ndarray):
         A = self._int_constant
@@ -248,7 +271,8 @@ class Solver:
         self._vd = self.__calc_vd()
         self._f = self.__calc_f(self._vd)
         self._ksum = np.sum(self.__calc_k(self._vd), axis=1)
-        self._acceleration = self._f + self._ksum + self.__calc_e()
+        self._e = self.__calc_e()
+        self._acceleration = self._f + self._ksum + self._e
 
         self._walkers.u = self._walkers.u + self._delta_t * self._acceleration
 
