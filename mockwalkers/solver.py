@@ -57,8 +57,6 @@ class Solver:
 
         # Kernel constants
         self._int_constant = float(1)
-        self._int_radius = float(1)
-        self._theta_max = np.radians(80)
         self._vel_option = int(1)
 
         # Iterate constants
@@ -91,14 +89,6 @@ class Solver:
     @property
     def int_constant(self):
         return self._int_constant
-
-    @property
-    def int_radius(self):
-        return self._int_radius
-
-    @property
-    def theta_max(self):
-        return self._theta_max
 
     @property
     def vel_option(self):
@@ -143,16 +133,6 @@ class Solver:
         self._int_constant = int_constant
         return self._int_constant
 
-    @int_radius.setter
-    def int_radius(self, int_radius: float):
-        self._int_radius = int_radius
-        return self._int_radius
-
-    @theta_max.setter
-    def theta_max(self, theta_max: float):
-        self._theta_max = theta_max
-        return self._theta_max
-
     @vel_option.setter
     def vel_option(self, vel_option: int):
         self._vel_option = vel_option
@@ -167,8 +147,7 @@ class Solver:
         vd : ndarray
             the desired velocity field (in meters per second)
         """
-        f = (vd - self._walkers.u) / self._tau
-        return f
+        return (vd - self._walkers.u) / self._tau
 
     def __calc_e(self):
         """Implementation of the private method of the Solver class used to calculate
@@ -191,8 +170,8 @@ class Solver:
 
     def __calc_k(self, vd: np.ndarray):
         A = self._int_constant
-        R = self._int_radius
-        theta_max = self._theta_max
+        R = self._walkers.int_radius
+        theta_max = self._walkers.theta_max
 
         X = self._walkers.x[:, 0]
         Y = self._walkers.x[:, 1]

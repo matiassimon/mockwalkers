@@ -57,6 +57,8 @@ class Walkers:
         self._x = x
         self._u = u
         self._types = types
+        self._int_radius = float(1)
+        self._theta_max = np.radians(80)
 
     @property
     def n(self):
@@ -73,6 +75,14 @@ class Walkers:
     @property
     def types(self):
         return self._types
+
+    @property
+    def int_radius(self):
+        return self._int_radius
+
+    @property
+    def theta_max(self):
+        return self._theta_max
 
     @x.setter
     def x(self, x: np.ndarray):
@@ -94,3 +104,13 @@ class Walkers:
             raise ValueError("the shape of types cannot be changed")
         self._types = types
         return self._types
+
+    @int_radius.setter
+    def int_radius(self, int_radius: float):
+        self._int_radius = int_radius
+        return self._int_radius
+
+    @theta_max.setter
+    def theta_max(self, theta_max: float):
+        self._theta_max = theta_max
+        return self._theta_max
