@@ -8,12 +8,13 @@ from matplotlib.collections import (
 from matplotlib.markers import MarkerStyle
 from matplotlib.patheffects import Stroke
 from matplotlib.axes import Axes
-from matplotlib.patches import Circle
+from matplotlib.patches import Patch, Circle, Rectangle
 from matplotlib.transforms import IdentityTransform, Affine2D
 from matplotlib.backend_bases import RendererBase
 
 from .solver import Solver, Walkers
 from .vdcalculator import VdCalculator
+from .obstacle import Obstacle, RectangleObstacle
 
 
 class PatchTransCollection(PatchCollection):
@@ -152,6 +153,20 @@ class WalkersInteractionCollection(ArrowCollections):
         super().update(self._solver.walkers.x, self._solver.ksum)
 
 
+class WalkersObstaclesCollection(ArrowCollections):
+    def __init__(self, ax: Axes, solver: Solver):
+        """"""
+        self._ax = ax
+        self._solver = solver
+
+        super().__init__(
+            ax, solver.walkers.x, solver.e, {"color": "C3"}, {"color": "C3"}
+        )
+
+    def update(self):
+        super().update(self._solver.walkers.x, self._solver.e)
+
+
 class WalkersTracesSegments:
     def __init__(self, nwalkers, size=100):
         self._size = size
@@ -229,7 +244,7 @@ class VdCalculatorLineCollection(LineCollection):
         ax.add_collection(self)
         self.set_transform(ax.transAxes)
         self.set_color("lightgray")
-        self.set_zorder(-1)
+        self.set_zorder(-2)
 
     def __calc_base_sample_points(self, n):
         [l, s] = np.linspace(0, 1, n, endpoint=False, retstep=True)
@@ -277,6 +292,19 @@ class VdCalculatorLineCollection(LineCollection):
         return super().draw(renderer)
 
 
+def obstacle_path_factory(ax: Axes, obstacle: Obstacle) -> Patch:
+    zorder = -1
+    color = "darkgray"
+    if isinstance(obstacle, RectangleObstacle):
+        return ax.add_patch(
+            Rectangle(
+                obstacle.xy, obstacle.width, obstacle.height, zorder=zorder, color=color
+            )
+        )
+
+    raise ValueError("unsoported obstacle")
+
+
 class Graphic:
     def __init__(
         self,
@@ -290,21 +318,29 @@ class Graphic:
         self.walkers = WalkersCollection(ax, solver)
         self.walkers_propulsion = WalkersPropulsionCollection(ax, solver)
         self.walkers_interaction = WalkersInteractionCollection(ax, solver)
+        self.walkers_obstacles = WalkersObstaclesCollection(ax, solver)
         self.walkers_traces = WalkersTracesCollection(ax, solver)
         self.vd_calcs = [
             VdCalculatorLineCollection(ax, vd_calc) for vd_calc in solver.vd_calcs
+        ]
+        self.obstacles = [
+            obstacle_path_factory(ax, obstacle) for obstacle in solver.obstacles
         ]
 
     def update(self):
         self.walkers.update()
         self.walkers_propulsion.update()
         self.walkers_interaction.update()
+        self.walkers_obstacles.update()
         self.walkers_traces.update()
 
     def remove(self):
         self.walkers.remove()
         self.walkers_propulsion.remove()
         self.walkers_interaction.remove()
+        self.walkers_obstacles.remove()
         self.walkers_traces.remove()
         for vd_calc in self.vd_calcs:
             vd_calc.remove()
+        for obstacle in self.obstacles:
+            obstacle.remove()
