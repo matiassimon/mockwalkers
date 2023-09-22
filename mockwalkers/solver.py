@@ -61,9 +61,6 @@ class Solver:
         self._theta_max = np.radians(80)
         self._vel_option = int(1)
 
-        # Desired velocity constants
-        self._vdmag = float(1)
-
         # Iterate constants
         self._current_time = float(0)
 
@@ -106,10 +103,6 @@ class Solver:
     @property
     def vel_option(self):
         return self._vel_option
-
-    @property
-    def vd_mag(self):
-        return self._vd_mag
 
     @property
     def current_time(self):
@@ -165,11 +158,6 @@ class Solver:
         self._vel_option = vel_option
         return self._vel_option
 
-    @vd_mag.setter
-    def vd_mag(self, vd_mag: float):
-        self._vdmag = vd_mag
-        return self._vd_mag
-
     def __calc_f(self, vd: np.ndarray):
         """
         Calculates propulsion for a desired velocity field vd
@@ -179,7 +167,7 @@ class Solver:
         vd : ndarray
             the desired velocity field (in meters per second)
         """
-        f = (vd - self._walkers.u) / self.tau
+        f = (vd - self._walkers.u) / self._tau
         return f
 
     def __calc_e(self):
