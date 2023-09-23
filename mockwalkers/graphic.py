@@ -12,6 +12,7 @@ from matplotlib.axes import Axes
 from matplotlib.patches import Patch, Circle, Rectangle
 from matplotlib.transforms import IdentityTransform, Affine2D
 from matplotlib.backend_bases import RendererBase
+from matplotlib.path import Path
 
 from .solver import Solver, Walkers
 from .vdcalculator import VdCalculator
@@ -178,31 +179,40 @@ class WalkersEElement(ArrowElement):
         return self.set_arrows(self._solver.walkers.x, self._solver.e)
 
 
-class WalkersTracesSegments:
-    def __init__(self, nwalkers, size=100):
+class WalkersTracesLineCollection(LineCollection):
+    def __init__(self, nwalkers, *, size=100, **kwargs):
+        super().__init__([], **kwargs)
+
         self._size = size
         self._nwalkers = nwalkers
-        self.segs = np.empty((nwalkers * size, 2, 2))
-        self.segs.fill(np.nan)
+        self._segs = [Path([[np.nan, np.nan]])] * (nwalkers * size)
         self._segs_idx = 0
         self._last_x = np.empty((nwalkers, 2))
         self._last_x.fill(np.nan)
-        self.vels = np.empty((nwalkers * size))
-        self.vels.fill(np.nan)
+        self._vels = np.empty((nwalkers * size))
+        self._vels.fill(np.nan)
 
     def add(self, x: np.ndarray, u: np.ndarray):
         if x.shape != (self._nwalkers, 2) or u.shape != (self._nwalkers, 2):
             raise ValueError("invalid shape")
 
         new_segs = np.stack((self._last_x, x), axis=1)
-        self.segs[self._segs_idx : self._segs_idx + self._nwalkers] = new_segs
+
+        for i in range(self._nwalkers):
+            self._segs[self._segs_idx + i] = Path(new_segs[i])
 
         new_vels = np.linalg.norm(u, axis=1)
-        self.vels[self._segs_idx : self._segs_idx + self._nwalkers] = new_vels
+        self._vels[self._segs_idx : self._segs_idx + self._nwalkers] = new_vels
 
         self._last_x = x
         self._segs_idx += self._nwalkers
         self._segs_idx %= self._nwalkers * self._size
+
+        self.set_array(self._vels)
+        self.stale = True
+
+    def get_paths(self):
+        return self._segs
 
 
 class WalkersTracesElement(GraphicElement):
@@ -212,13 +222,13 @@ class WalkersTracesElement(GraphicElement):
         self._solver = solver
 
         linewidths = 2
-        zorder = 1
+        zorder = -1
         cmap = plt.get_cmap("turbo_r")
         norm = plt.Normalize(0, 2)
         alpha = 0.5
 
-        self._artist = LineCollection(
-            [],
+        self._artist = WalkersTracesLineCollection(
+            solver.walkers.n,
             linewidths=linewidths,
             zorder=zorder,
             cmap=cmap,
@@ -227,14 +237,10 @@ class WalkersTracesElement(GraphicElement):
         )
 
         ax.add_collection(self._artist)
-
-        self._segs = WalkersTracesSegments(solver.walkers.n)
         self.update()
 
     def update(self):
-        self._segs.add(self._solver.walkers.x, self._solver.walkers.u)
-        self._artist.set_segments(self._segs.segs)
-        self._artist.set_array(self._segs.vels)
+        self._artist.add(self._solver.walkers.x, self._solver.walkers.u)
         return [self._artist]
 
     @property
