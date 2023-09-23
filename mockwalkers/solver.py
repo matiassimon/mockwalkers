@@ -189,9 +189,7 @@ class Solver:
         ns.dist_vec_bstack = np.stack(
             (np.subtract(ns.Xi, ns.Xj), np.subtract(ns.Yi, ns.Yj)), axis=2
         )
-        ns.dist_sqr_nstack = np.square(ns.dist_vec_bstack[:, :, 0]) + np.square(
-            ns.dist_vec_bstack[:, :, 1]
-        )
+        ns.dist_sqr_nstack = np.sum(np.square(ns.dist_vec_bstack), axis=2)
         ns.dist_mag_nstack = np.sqrt(ns.dist_sqr_nstack)
         ns.dist_sqr_bstack = np.broadcast_to(
             ns.dist_sqr_nstack[:, :, np.newaxis], (*ns.dist_sqr_nstack.shape, 2)
@@ -201,24 +199,22 @@ class Solver:
         )
 
         if self._vel_option == int(0):
-            ns.U = vd[:, 0]
-            ns.V = vd[:, 1]
+            ns.U = vd
         elif self._vel_option == int(1):
-            ns.U = self._walkers.u[:, 0]
-            ns.V = self._walkers.u[:, 1]
+            ns.U = self._walkers.u
 
-        [ns.Ui, ns.Uj] = np.meshgrid(ns.U, ns.U)
-        [ns.Vi, ns.Vj] = np.meshgrid(ns.V, ns.V)
-
-        ns.vd_vec_bstack = np.stack((ns.Uj, ns.Vj), axis=2)
-        ns.vd_mag_nstack = np.sqrt(
-            np.square(ns.vd_vec_bstack[:, :, 0]) + np.square(ns.vd_vec_bstack[:, :, 1])
+        ns.vd_vec_bstack = np.broadcast_to(
+            ns.U[:, np.newaxis, :], ns.dist_vec_bstack.shape
+        )
+        ns.U_mag = np.sqrt(np.sum(np.square(ns.U), axis=1))
+        ns.vd_mag_nstack = np.broadcast_to(
+            ns.U_mag[:, np.newaxis], ns.dist_mag_nstack.shape
         )
 
         # The distance points TO the i walker, but we need the vector pointing away
         # from it, so we multiply by -1
         ns.prod_org = -1 * ns.dist_vec_bstack * ns.vd_vec_bstack
-        ns.prod_dot = ns.prod_org[:, :, 0] + ns.prod_org[:, :, 1]
+        ns.prod_dot = np.sum(ns.prod_org, axis=2)
         ns.prod_mag = ns.dist_mag_nstack * ns.vd_mag_nstack
         ns.theta_org = np.arccos(ns.prod_dot / ns.prod_mag)
         ns.theta = ns.theta_org < ns.theta_max
