@@ -189,7 +189,11 @@ class Solver:
         ns.dist_vec_bstack = np.stack(
             (np.subtract(ns.Xi, ns.Xj), np.subtract(ns.Yi, ns.Yj)), axis=2
         )
-        ns.dist_sqr_nstack = np.sum(np.square(ns.dist_vec_bstack), axis=2)
+        ns.dist_vec_sqr_bstack = np.square(ns.dist_vec_bstack)
+        ns.dist_sqr_nstack = (
+            ns.dist_vec_sqr_bstack[:, :, 0] + ns.dist_vec_sqr_bstack[:, :, 1]
+        )
+        ns.dist_sqr_nstack[ns.dist_sqr_nstack == 0.0] = np.nan
         ns.dist_mag_nstack = np.sqrt(ns.dist_sqr_nstack)
         ns.dist_sqr_bstack = np.broadcast_to(
             ns.dist_sqr_nstack[:, :, np.newaxis], (*ns.dist_sqr_nstack.shape, 2)
@@ -214,8 +218,9 @@ class Solver:
         # The distance points TO the i walker, but we need the vector pointing away
         # from it, so we multiply by -1
         ns.prod_org = -1 * ns.dist_vec_bstack * ns.vd_vec_bstack
-        ns.prod_dot = np.sum(ns.prod_org, axis=2)
+        ns.prod_dot = ns.prod_org[:, :, 0] + ns.prod_org[:, :, 1]
         ns.prod_mag = ns.dist_mag_nstack * ns.vd_mag_nstack
+        ns.prod_mag[ns.prod_mag == 0.0] = np.nan
         ns.theta_org = np.arccos(ns.prod_dot / ns.prod_mag)
         ns.theta = ns.theta_org < ns.theta_max
 
@@ -223,18 +228,19 @@ class Solver:
             ns.theta[:, :, np.newaxis], (*ns.theta.shape, 2)
         )
 
-        ns.k = (
-            ns.A
-            * np.exp((-ns.dist_sqr_bstack) / (ns.R**2))
-            * (ns.dist_vec_bstack / ns.dist_mag_bstack)
-            * ns.theta_bstack
-        )
-        ns.k = np.nan_to_num(ns.k)
+        ns.k = np.exp((-ns.dist_sqr_bstack) / (ns.R**2))
+        ns.k *= ns.dist_vec_bstack / ns.dist_mag_bstack
+        ns.k *= ns.theta_bstack
+        ns.k *= ns.A
+        ns.k = np.nan_to_num(ns.k, copy=False)
         return ns.k
 
     def __calc_vd(self):
         """"""
-        return np.sum([vdcalc(self._walkers) for vdcalc in self._vd_calcs], axis=0)
+        sum = np.zeros(self._walkers.u.shape)
+        for vdcalc in self._vd_calcs:
+            sum += vdcalc(self._walkers)
+        return sum
 
     def iterate(self):
         self._walkers.x = self._walkers.x + self.delta_t * self._walkers.u
