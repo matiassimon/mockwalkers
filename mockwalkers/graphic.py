@@ -10,7 +10,12 @@ from matplotlib.markers import MarkerStyle
 from matplotlib.patheffects import Stroke
 from matplotlib.axes import Axes
 from matplotlib.patches import Patch, Circle, Rectangle
-from matplotlib.transforms import IdentityTransform, Affine2D
+from matplotlib.transforms import (
+    Affine2DBase,
+    AffineDeltaTransform,
+    IdentityTransform,
+    Affine2D,
+)
 from matplotlib.backend_bases import RendererBase
 from matplotlib.path import Path
 
@@ -81,6 +86,33 @@ class WalkersElement(GraphicElement):
         return [self._artist]
 
 
+class ArrowHeadTransform(Affine2DBase):
+    def __init__(self, d, scale, trans_data):
+        super().__init__()
+        self._t = Affine2D()
+        self._d = d
+        self._scale = scale
+        self._trans_data = AffineDeltaTransform(trans_data)
+        self.set_children(trans_data)
+        self._mtx = None
+
+    @property
+    def depth(self):
+        return self._rot.depth + self._trans_data.depth
+
+    def get_matrix(self):
+        if self._invalid:
+            dd = self._trans_data.transform(self._d)
+            self._t.clear()
+            self._t.rotate(np.arctan2(dd[1], dd[0]))
+            self._t.scale(self._scale)
+            self._mtx = self._t.get_matrix()
+            self._inverted = None
+            self._invalid = 0
+
+        return self._mtx
+
+
 class ArrowElement(GraphicElement):
     def __init__(
         self,
@@ -105,16 +137,13 @@ class ArrowElement(GraphicElement):
         return tails
 
     def __create_heads(self, **kwargs):
-        marker_scale = kwargs.get("markerscale", 10)
+        self._head_markerscale = kwargs.get("markerscale", 10)
 
         heads = PatchTransCollection(
             (MarkerStyle(">"),), offset_transform=self._ax.transData, **kwargs
         )
-        # heads.set_patch_transforms([Affine2D().rotate_deg(15)])
         self._ax.add_collection(heads)
         heads.set_transform(IdentityTransform())
-        self._base_heads_transforms = Affine2D().scale(marker_scale)
-        heads.set_patch_transforms([self._base_heads_transforms])
         return heads
 
     def __calc_segments(self, p, d):
@@ -122,8 +151,8 @@ class ArrowElement(GraphicElement):
 
     def __calc_heads_transforms(self, d):
         return [
-            self._base_heads_transforms + Affine2D().rotate(angle)
-            for angle in np.arctan2(d[:, 1], d[:, 0])
+            ArrowHeadTransform(di, self._head_markerscale, self._ax.transData)
+            for di in d
         ]
 
     def set_arrows(self, p: ArrayLike, d: ArrayLike):
