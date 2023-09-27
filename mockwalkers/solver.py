@@ -248,8 +248,8 @@ class Solver:
     def __calc_vd(self):
         """"""
         sum = np.zeros(self._walkers.u.shape)
-        for vdcalc in self._vd_calcs:
-            sum += vdcalc(self._walkers)
+        for vd_calc in self._vd_calcs:
+            sum += vd_calc(self._walkers)
         return sum
 
     def iterate(self):

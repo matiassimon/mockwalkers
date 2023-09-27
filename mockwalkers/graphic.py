@@ -327,9 +327,9 @@ class SampleAnglesCollection(LineCollection):
 
 
 class VdCalcElement(GraphicElement):
-    def __init__(self, ax: Axes, vdcalc: VdCalculator):
+    def __init__(self, ax: Axes, vd_calc: VdCalculator):
         self._ax = ax
-        self._vdcalc = vdcalc
+        self._vd_calc = vd_calc
         n = 50
 
         sample_points = self.__calc_sample_points(n)
@@ -341,7 +341,7 @@ class VdCalcElement(GraphicElement):
                 transDataToAxes.inverted().transform(sample_points),
                 np.zeros(sample_points.shape),
             )
-            return deltaTransDataToAxes.transform(vdcalc(sample_walkers))
+            return deltaTransDataToAxes.transform(vd_calc(sample_walkers))
 
         self._artist = SampleAnglesCollection(sample_points, sampler, 1 / n)
 
