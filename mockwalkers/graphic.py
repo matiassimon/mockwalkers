@@ -22,6 +22,7 @@ from matplotlib.path import Path
 from .solver import Solver, Walkers
 from .vdcalculator import VdCalculator
 from .obstacle import Obstacle, RectangleObstacle
+from .geometry import Euclidean
 
 
 class GraphicElement(ABC):
@@ -65,7 +66,7 @@ class WalkersElement(GraphicElement):
             (
                 Circle(
                     (0, 0),
-                    solver.walkers.int_radius,
+                    solver.walkers.int_radius / 4,
                 ),
             ),
             offsets=solver.walkers.x,
@@ -269,7 +270,15 @@ class WalkersTracesElement(GraphicElement):
         self.update()
 
     def update(self):
-        self._artist.add(self._solver.walkers.x, self._solver.walkers.u)
+        mask = np.isnan(self._artist._last_x)
+        mask |= np.equal(
+            Euclidean().distance(self._artist._last_x, self._solver.walkers.x),
+            self._solver.geometry.distance(
+                self._artist._last_x, self._solver.walkers.x
+            ),
+        )
+        x = np.where(mask, self._solver.walkers.x, np.nan)
+        self._artist.add(x, self._solver.walkers.u)
         return [self._artist]
 
     @property
