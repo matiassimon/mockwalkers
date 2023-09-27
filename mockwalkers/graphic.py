@@ -324,10 +324,10 @@ class VdCalcElement(GraphicElement):
         n = 50
 
         sample_points = self.__calc_sample_points(n)
-        transDataToAxes = ax.transData + ax.transAxes.inverted()
-        deltaTransDataToAxes = AffineDeltaTransform(transDataToAxes)
 
         def sampler(sample_points):
+            transDataToAxes = ax.transData + ax.transAxes.inverted()
+            deltaTransDataToAxes = AffineDeltaTransform(transDataToAxes)
             sample_walkers = Walkers(
                 transDataToAxes.inverted().transform(sample_points),
                 np.zeros(sample_points.shape),
