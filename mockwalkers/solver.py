@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from .walkers import Walkers
 from .vdcalculator import VdCalculator
 from .obstacle import Obstacle
+from .geometry import Geometry, Euclidean
 
 
 class Solver:
@@ -37,6 +38,7 @@ class Solver:
         delta_t: float,
         vd_calcs: [VdCalculator],
         obstacles: [Obstacle],
+        geometry: Geometry = Euclidean(),
     ):
         """
         Parameters
@@ -49,6 +51,7 @@ class Solver:
         self._delta_t = delta_t
         self._vd_calcs = vd_calcs
         self._obstacles = obstacles
+        self._geometry = geometry
 
         # Obstacle interaction constant
         self._obs_constant = float(10)
@@ -122,6 +125,10 @@ class Solver:
     def obstacles(self):
         return self._obstacles
 
+    @property
+    def geometry(self):
+        return self._geometry
+
     @delta_t.setter
     def delta_t(self, delta_t):
         self._delta_t = delta_t
@@ -161,7 +168,7 @@ class Solver:
         ns.sum = np.zeros(self._walkers.x.shape)
 
         for obstacle in self._obstacles:
-            ns.dist = obstacle.distance(self._walkers)
+            ns.dist = self._geometry.distance(self._walkers.x, obstacle)
             ns.dist_mag = np.linalg.norm(ns.dist, axis=1)
             ns.dist_mag_br = np.broadcast_to(ns.dist_mag[:, np.newaxis], ns.dist.shape)
             ns.sum += (
@@ -180,15 +187,18 @@ class Solver:
         ns.R = self._walkers.int_radius
         ns.theta_max = self._walkers.theta_max
 
-        ns.X = self._walkers.x[:, 0]
-        ns.Y = self._walkers.x[:, 1]
-
-        [ns.Xj, ns.Xi] = np.meshgrid(ns.X, ns.X, copy=False)
-        [ns.Yj, ns.Yi] = np.meshgrid(ns.Y, ns.Y, copy=False)
-
-        ns.dist_vec_bstack = np.stack(
-            (np.subtract(ns.Xi, ns.Xj), np.subtract(ns.Yi, ns.Yj)), axis=2
+        ns.X = self._walkers.x
+        ns.X_mesh = np.broadcast_to(
+            ns.X[np.newaxis, :, :], (ns.X.shape[0], *ns.X.shape)
         )
+        ns.X_mesh_t = np.broadcast_to(
+            ns.X[:, np.newaxis, :], (ns.X.shape[0], *ns.X.shape)
+        )
+        ns.X_mesh_flat = np.reshape(ns.X_mesh, (-1, 2))
+        ns.X_mesh_t_flat = np.reshape(ns.X_mesh_t, (-1, 2))
+        # ns.X_mesh_t_flat = np.reshape(np.transpose(ns.X_mesh, (1, 0, 2)), (-1, 2))
+        ns.dist_vec_flat = self._geometry.distance(ns.X_mesh_t_flat, ns.X_mesh_flat)
+        ns.dist_vec_bstack = np.reshape(ns.dist_vec_flat, ns.X_mesh.shape)
         ns.dist_vec_sqr_bstack = np.square(ns.dist_vec_bstack)
         ns.dist_sqr_nstack = (
             ns.dist_vec_sqr_bstack[:, :, 0] + ns.dist_vec_sqr_bstack[:, :, 1]
@@ -243,7 +253,9 @@ class Solver:
         return sum
 
     def iterate(self):
-        self._walkers.x = self._walkers.x + self.delta_t * self._walkers.u
+        self._walkers.x = self.geometry.position(
+            self._walkers.x + self.delta_t * self._walkers.u
+        )
 
         self._vd = self.__calc_vd()
         self._f = self.__calc_f(self._vd)
