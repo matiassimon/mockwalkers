@@ -324,15 +324,15 @@ class VdCalcElement(GraphicElement):
         n = 50
 
         sample_points = self.__calc_sample_points(n)
+        transDataToAxes = ax.transData + ax.transAxes.inverted()
+        deltaTransDataToAxes = AffineDeltaTransform(transDataToAxes)
 
         def sampler(sample_points):
             sample_walkers = Walkers(
-                ax.transData.inverted().transform(
-                    self._ax.transAxes.transform(sample_points)
-                ),
-                np.empty(sample_points.shape),
+                transDataToAxes.inverted().transform(sample_points),
+                np.zeros(sample_points.shape),
             )
-            return vdcalc(sample_walkers)
+            return deltaTransDataToAxes.transform(vdcalc(sample_walkers))
 
         self._artist = SampleAnglesCollection(sample_points, sampler, 1 / n)
 
