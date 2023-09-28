@@ -7,9 +7,8 @@ from matplotlib.collections import (
     PatchCollection,
 )
 from matplotlib.markers import MarkerStyle
-from matplotlib.patheffects import Stroke
 from matplotlib.axes import Axes
-from matplotlib.patches import Patch, Circle, Rectangle
+from matplotlib.patches import Circle, Rectangle
 from matplotlib.transforms import (
     Affine2DBase,
     AffineDeltaTransform,
