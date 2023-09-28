@@ -11,7 +11,16 @@ class VdCalculator(ABC):
 
 
 class RectangleVelocityBooster(VdCalculator):
-    def __init__(self, x, y, dx, dy, vdx, vdy, types_mask=0xFFFF):
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        dx: float,
+        dy: float,
+        vdx: float,
+        vdy: float,
+        types_mask: int = 0xFFFF,
+    ) -> None:
         """"""
         self._x1 = min(x, x + dx)
         self._x2 = max(x, x + dx)
