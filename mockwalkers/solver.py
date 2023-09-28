@@ -39,7 +39,7 @@ class Solver:
         vd_calcs: [VdCalculator],
         obstacles: [Obstacle],
         geometry: Geometry = Euclidean(),
-    ):
+    ) -> None:
         """
         Parameters
         ----------
@@ -82,74 +82,74 @@ class Solver:
         self._ns_k = SimpleNamespace()
 
     @property
-    def walkers(self):
+    def walkers(self) -> Walkers:
         return self._walkers
 
     @property
-    def delta_t(self):
+    def delta_t(self) -> float:
         return self._delta_t
 
     @property
-    def tau(self):
+    def tau(self) -> float:
         return self._tau
 
     @property
-    def int_constant(self):
+    def int_constant(self) -> float:
         return self._int_constant
 
     @property
-    def vel_option(self):
+    def vel_option(self) -> int:
         return self._vel_option
 
     @property
-    def current_time(self):
+    def current_time(self) -> float:
         return self._current_time
 
     @property
-    def f(self):
+    def f(self) -> np.ndarray:
         return self._f
 
     @property
-    def ksum(self):
+    def ksum(self) -> np.ndarray:
         return self._ksum
 
     @property
-    def e(self):
+    def e(self) -> np.ndarray:
         return self._e
 
     @property
-    def vd_calcs(self):
+    def vd_calcs(self) -> [VdCalculator]:
         return self._vd_calcs
 
     @property
-    def obstacles(self):
+    def obstacles(self) -> [Obstacle]:
         return self._obstacles
 
     @property
-    def geometry(self):
+    def geometry(self) -> Geometry:
         return self._geometry
 
     @delta_t.setter
-    def delta_t(self, delta_t):
+    def delta_t(self, delta_t: float) -> float:
         self._delta_t = delta_t
         return self._delta_t
 
     @tau.setter
-    def tau(self, tau):
+    def tau(self, tau: float) -> float:
         self._tau = tau
         return self._tau
 
     @int_constant.setter
-    def int_constant(self, int_constant: float):
+    def int_constant(self, int_constant: float) -> float:
         self._int_constant = int_constant
         return self._int_constant
 
     @vel_option.setter
-    def vel_option(self, vel_option: int):
+    def vel_option(self, vel_option: int) -> int:
         self._vel_option = vel_option
         return self._vel_option
 
-    def __calc_f(self, vd: np.ndarray):
+    def __calc_f(self, vd: np.ndarray) -> np.ndarray:
         """
         Calculates propulsion for a desired velocity field vd
 
@@ -160,7 +160,7 @@ class Solver:
         """
         return (vd - self._walkers.u) / self._tau
 
-    def __calc_e(self):
+    def __calc_e(self) -> np.ndarray:
         """Implementation of the private method of the Solver class used to calculate
         the E term of the eq. ■, aimed to the corridor example.
         """
@@ -180,7 +180,7 @@ class Solver:
 
         return ns.sum
 
-    def __calc_k(self, vd: np.ndarray):
+    def __calc_k(self, vd: np.ndarray) -> np.ndarray:
         ns = self._ns_k
 
         ns.A = self._int_constant
@@ -244,14 +244,14 @@ class Solver:
         ns.k = np.nan_to_num(ns.k, copy=False)
         return ns.k
 
-    def __calc_vd(self):
+    def __calc_vd(self) -> np.ndarray:
         """"""
         sum = np.zeros(self._walkers.u.shape)
         for vd_calc in self._vd_calcs:
             sum += vd_calc(self._walkers)
         return sum
 
-    def iterate(self):
+    def iterate(self) -> None:
         self._walkers.x = self.geometry.position(
             self._walkers.x + self.delta_t * self._walkers.u
         )
