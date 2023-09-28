@@ -196,7 +196,6 @@ class Solver:
         )
         ns.X_mesh_flat = np.reshape(ns.X_mesh, (-1, 2))
         ns.X_mesh_t_flat = np.reshape(ns.X_mesh_t, (-1, 2))
-        # ns.X_mesh_t_flat = np.reshape(np.transpose(ns.X_mesh, (1, 0, 2)), (-1, 2))
         ns.dist_vec_flat = self._geometry.distance(ns.X_mesh_t_flat, ns.X_mesh_flat)
         ns.dist_vec_bstack = np.reshape(ns.dist_vec_flat, ns.X_mesh.shape)
         ns.dist_vec_sqr_bstack = np.square(ns.dist_vec_bstack)
