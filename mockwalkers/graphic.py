@@ -37,7 +37,6 @@ class GraphicElement(ABC):
 
 class PatchTransCollection(PatchCollection):
     _patch_transforms = None
-    _mask = np.array([[1, 1, 0], [1, 1, 0], [0, 0, 1]])
 
     def set_patch_transforms(self, transforms):
         self._patch_transforms = transforms
@@ -46,10 +45,7 @@ class PatchTransCollection(PatchCollection):
         if self._patch_transforms is None:
             return np.empty((0, 3, 3))
 
-        return [
-            np.where(self._mask, trans.get_matrix(), 0)
-            for trans in self._patch_transforms
-        ]
+        return [trans.get_matrix() for trans in self._patch_transforms]
 
 
 class WalkersElement(GraphicElement):
@@ -75,7 +71,7 @@ class WalkersElement(GraphicElement):
 
         ax.add_collection(self._artist)
         self._artist.set_transform(IdentityTransform())
-        self._artist.set_patch_transforms([ax.transData])
+        self._artist.set_patch_transforms([AffineDeltaTransform(ax.transData)])
 
     @property
     def artists(self):
@@ -98,7 +94,7 @@ class ArrowHeadTransform(Affine2DBase):
 
     @property
     def depth(self):
-        return self._rot.depth + self._trans_data.depth
+        return self._t.depth + self._trans_data.depth
 
     def get_matrix(self):
         if self._invalid:
