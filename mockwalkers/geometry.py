@@ -50,7 +50,7 @@ class Euclidean(Geometry):
         return x - np.column_stack((closest_x, closest_y))
 
 
-class HorizontalPeriodic(Euclidean):
+class EuclideanXPeriodic(Euclidean):
     def __init__(self, x: float, dx: float):
         self._x = x
         self._dx = dx
