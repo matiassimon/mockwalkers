@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from numpy.typing import ArrayLike
 from multimethod import multimethod
 from .obstacle import RectangleObstacle
 import numpy as np
