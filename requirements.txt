@@ -1,5 +1,0 @@
-black
-numpy
-pytest
-matplotlib
-multimethod
