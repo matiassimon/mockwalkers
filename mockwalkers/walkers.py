@@ -74,7 +74,7 @@ class Walkers:
         return self._u
 
     @property
-    def types(self) -> Union(None, np.ndarray):
+    def types(self) -> Union[None, np.ndarray]:
         return self._types
 
     @property
