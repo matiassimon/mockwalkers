@@ -10,12 +10,13 @@
 				"github.vscode-github-actions",
 				"ms-python.python",
 				"donjayamanne.python-extension-pack",
-				"ms-python.black-formatter"
+				"ms-python.black-formatter",
+				"tamasfe.even-better-toml"
 			]
 		}
 	},
 
-	"postStartCommand": "pip install -rrequirements.txt"
+	"postStartCommand": "pip install -e .[dev]"
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
