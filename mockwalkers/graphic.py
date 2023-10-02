@@ -289,11 +289,11 @@ class WalkersTracesLineCollection(LineCollection):
 
 
 class WalkersTracesElement(GraphicElement):
-    def __init__(self, ax: Axes, solver: Solver, **kwargs) -> None:
+    def __init__(self, ax: Axes, solver: Solver, *, skip: int = 0, **kwargs) -> None:
         """"""
         self._ax = ax
         self._solver = solver
-        self._skip = kwargs.get("skip", 0)
+        self._skip = skip
         self._skipped = 0
 
         if "linewidths" not in kwargs:
@@ -315,7 +315,7 @@ class WalkersTracesElement(GraphicElement):
     def update(self) -> [Artist]:
         if self._skipped != self._skip:
             self._skipped += 1
-            return []
+            return [self._artist]
         self._skipped = 0
 
         mask = np.isnan(self._artist._last_x)
