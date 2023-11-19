@@ -31,7 +31,13 @@ class Walkers:
         Sets the array _types containing the types of individuals in the crowd
     """
 
-    def __init__(self, x: np.ndarray, u: np.ndarray, types: np.ndarray = None) -> None:
+    def __init__(
+        self,
+        x: np.ndarray,
+        u: np.ndarray,
+        types: np.ndarray = None,
+        speeds: np.ndarray = None,
+    ) -> None:
         """
         Parameters
         ----------
@@ -55,11 +61,12 @@ class Walkers:
             raise ValueError("types should have shape (N,)")
 
         self._n = x.shape[0]
-        self._x = x
-        self._u = u
-        self._types = types
-        self._int_radius = float(1)
+        self._x = x.astype(float)
+        self._u = u.astype(float)
+        self._types = None if types is None else types.astype(int) 
+        self._int_radius = float(0.5)
         self._theta_max = np.radians(80)
+        self._speeds = None if speeds is None else speeds.astype(float) 
 
     @property
     def n(self) -> int:
@@ -76,6 +83,10 @@ class Walkers:
     @property
     def types(self) -> Union[None, np.ndarray]:
         return self._types
+
+    @property
+    def speeds(self) -> Union[None, np.ndarray]:
+        return self._speeds
 
     @property
     def int_radius(self) -> float:
@@ -105,6 +116,13 @@ class Walkers:
             raise ValueError("the shape of types cannot be changed")
         self._types = types
         return self._types
+
+    @speeds.setter
+    def speeds(self, speeds: np.ndarray) -> np.ndarray:
+        if speeds.shape != self._speeds.shape:
+            raise ValueError("the shape of speeds cannot be changed")
+        self._speeds = speeds
+        return self._speeds
 
     @int_radius.setter
     def int_radius(self, int_radius: float) -> float:
