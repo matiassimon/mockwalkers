@@ -33,6 +33,7 @@ class RectangleVelocityBooster(VdCalculator):
     def __call__(self, walkers: Walkers) -> np.ndarray:
         x = walkers.x
         types = walkers.types
+        speeds = walkers.speeds
         mask = (
             (x[:, 0] > self._x1)
             & (x[:, 0] < self._x2)
@@ -42,5 +43,8 @@ class RectangleVelocityBooster(VdCalculator):
 
         if types is not None:
             mask &= np.bitwise_and(types, self._types_mask) != 0x0000
-        mask = np.broadcast_to(mask[:, np.newaxis], x.shape)
-        return np.where(mask, np.asarray([self._vdx, self._vdy]), np.zeros(2))
+        # mask = np.broadcast_to(mask[:, np.newaxis], x.shape)
+        vds = np.asarray([[self._vdx, self._vdy]])
+        if speeds is not None:
+            vds = vds * speeds[:, np.newaxis]
+        return np.where(mask[:,np.newaxis], vds, np.zeros((1,2)))
