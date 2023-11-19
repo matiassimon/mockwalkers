@@ -63,7 +63,7 @@ class WalkersElement(GraphicElement):
             (
                 Circle(
                     (0, 0),
-                    solver.walkers.int_radius / 4,
+                    solver.walkers.int_radius / 2,
                 ),
             ),
             offsets=solver.walkers.x,
