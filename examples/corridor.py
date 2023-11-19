@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 import numpy as np
 
-np.random.seed(42)
+rng = np.random.default_rng()
 
 # Corridor geometry
 corridor_width = 30
@@ -18,7 +18,7 @@ geometry = mckw.EuclideanXPeriodic(0, corridor_width)
 # Number of walkers
 n_walkers = 70
 # Walkers random initial positions
-x = np.random.rand(n_walkers, 2)
+x = rng.random((n_walkers, 2))
 x[:, 0] *= corridor_width
 x[:, 1] *= corridor_height
 # Walkers types
@@ -31,7 +31,9 @@ types = np.concatenate(
         np.array([type_2_flag]).repeat(n_walkers // 2),
     )
 )
-walkers = mckw.Walkers(x, np.zeros((n_walkers, 2)), types)
+# Walkers speeds
+speeds = rng.normal(1, 0.1, n_walkers)
+walkers = mckw.Walkers(x, np.zeros((n_walkers, 2)), types, speeds)
 
 # Desired velocities
 type_1_vd = (1, 0)
@@ -47,7 +49,7 @@ vd_calcs = [
 
 # Simulation paramters
 delta_t = 0.01
-final_t = 50
+final_t = 10
 
 # Plot configuration
 repeat = False
@@ -73,7 +75,7 @@ def create_solver():
 
 
 def create_graphic():
-    return mckw.Graphic(ax, s, f_arrows=True, ksum_arrows=True, e_arrows=True)
+    return mckw.Graphic(ax, s, f_arrows=False, ksum_arrows=False, e_arrows=False)
 
 
 def init_fun():
