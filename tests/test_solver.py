@@ -1,4 +1,4 @@
-from mockwalkers.solver import Solver
+from mockwalkers.solver import Solver, Walkers
 from pytest import approx
 import numpy as np
 
@@ -80,44 +80,58 @@ def test_F_equal_zero():
 
 
 def test_interaction_kernel():
-    '''
+    """
     Unit test to check calculated solution by hand to code
-    '''
-    n = 2
-    x = np.array([[1, 2], [3, 4]])
-    types = np.array([0, 1])
+    """
+    x = np.array([[0, 0], [1, 0]])
     u = np.array([[1, 0], [-1, 0]])
     delta_t = 1
+    walkers = Walkers(x, u)
 
-    solver = Solver(n, x, u, types, delta_t)
+    solver = Solver(walkers, delta_t, [], [])
     solver.theta_max = 180
-    vd = solver._Solver__calc_vdterm()
+    vd = solver._Solver__calc_vd()
     k = solver._Solver__calc_k(vd)
 
-    assert approx(k[:,:,0]) == [[0, np.exp(-2)*(-2/np.sqrt(8))], [np.exp(-2)*(2/np.sqrt(8)), 0]]
-    assert approx(k[:,:,0]) == k[:,:,1]
-    
+    kv = solver.int_constant * np.exp(-1 / walkers.int_radius**2)
+    assert approx(k[:, :, 0]) == [
+        [0, -kv],
+        [kv, 0],
+    ]
+
+
 def test_iterate():
-    '''
+    """
     Unit test to check the iterate method
-    '''
+    """
     n = 1
     x = 3 * np.ones([n, 1])
     types = np.array([0])
     u = np.array([1, 0])
     delta_t = 1
-    
+
     solver = Solver(n, x, u, types, delta_t)
-    
+
     for i in range(1000):
         solver.iterate()
-        
-    assert approx(np.reshape(solver.u, [2,])) == u
+
+    assert (
+        approx(
+            np.reshape(
+                solver.u,
+                [
+                    2,
+                ],
+            )
+        )
+        == u
+    )
+
 
 def test_E_term_zero_solver():
-    '''
+    """
     Unit test if E == 0 when person is in the middle of the corridor
-    '''
+    """
     n = 2
     x = np.array([[1, 5], [0.5, 5]])
     types = np.array([0, 1])
