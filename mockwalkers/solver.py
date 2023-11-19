@@ -57,10 +57,10 @@ class Solver:
         self._obs_constant = float(10)
 
         # Propulsion constants
-        self._tau = float(1)
+        self._tau = float(0.5)
 
         # Kernel constants
-        self._int_constant = float(1)
+        self._int_constant = float(7)
         self._vel_option = int(1)
 
         # Iterate constants
