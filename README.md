@@ -1,15 +1,23 @@
 # MockWalkers
 
-![Corridor demo](https://github.com/matiassimon/mockwalkers/blob/develop/examples/corridor.gif)
+![Corridor demo gif](https://github.com/matiassimon/mockwalkers/raw/develop/examples/corridor.gif)
 
 ## Desciption
 
-This model simulates the behaviour of two crowds walking in a corridor in opposite directions.
+A walkers dynamic simulation library.
 
-## Authors and acknowledgment
+This project originated as our final project during the 9th Workshop on Collaborative Scientific Software Development and Management of Open Source Scientific Packages, held at the International Centre for Theoretical Physics (ICTP) in the picturesque city of Trieste, Italy.
+
+## Installation
+
+```
+pip install mockwalkers
+```
+
+## Authors
 
 David, Jimoh, Matias and Alouette
 
 ## License
 
-See license file
+See LICENCE file
