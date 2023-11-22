@@ -25,7 +25,7 @@ dependencies = ["numpy", "matplotlib", "multimethod"]
 requires-python = ">=3.9"
 
 [project.optional-dependencies]
-dev = ["black", "pytest", "sphinx", "furo"]
+dev = ["black", "pytest", "sphinx", "furo", "build", "twine"]
 
 [project.urls]
 Homepage = "https://github.com/matiassimon/mockwalkers"
